@@ -1,4 +1,4 @@
-package cn.zbx1425.nquestbot;
+package cn.zbx1425.nquestbot.data;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

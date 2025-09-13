@@ -1,5 +1,6 @@
 package cn.zbx1425.nquestbot.data;
 
+import cn.zbx1425.nquestbot.NQuestBot;
 import cn.zbx1425.nquestbot.data.quest.Quest;
 import cn.zbx1425.nquestbot.data.criteria.CriteriaRegistry;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
@@ -24,7 +25,13 @@ public class QuestPersistence {
             .setPrettyPrinting()
             .create();
 
-    public void savePlayerProfile(PlayerProfile profile, Path basePath) throws IOException {
+    public final Path basePath;
+
+    public QuestPersistence(Path basePath) {
+        this.basePath = basePath;
+    }
+
+    public void savePlayerProfile(PlayerProfile profile) throws IOException {
         Path profilePath = basePath.resolve("profiles").resolve(profile.playerUuid + ".json");
         Files.createDirectories(profilePath.getParent());
         try (Writer writer = Files.newBufferedWriter(profilePath)) {
@@ -32,7 +39,7 @@ public class QuestPersistence {
         }
     }
 
-    public PlayerProfile loadPlayerProfile(UUID playerUuid, Path basePath) throws IOException {
+    public PlayerProfile loadPlayerProfile(UUID playerUuid) throws IOException {
         Path profilePath = basePath.resolve("profiles").resolve(playerUuid + ".json");
         if (!Files.exists(profilePath)) {
             // Return a new profile if one doesn't exist
@@ -45,7 +52,7 @@ public class QuestPersistence {
         }
     }
 
-    public void saveQuestDefinition(Quest quest, Path basePath) throws IOException {
+    public void saveQuestDefinition(Quest quest) throws IOException {
         Path questPath = basePath.resolve("quests").resolve(quest.id + ".json");
         Files.createDirectories(questPath.getParent());
         try (Writer writer = Files.newBufferedWriter(questPath)) {
@@ -53,7 +60,7 @@ public class QuestPersistence {
         }
     }
 
-    public Collection<Quest> loadQuestDefinitions(Path basePath) throws IOException {
+    public Collection<Quest> loadQuestDefinitions() throws IOException {
         Path questsDir = basePath.resolve("quests");
         List<Quest> quests = new ArrayList<>();
         if (!Files.isDirectory(questsDir)) {
@@ -64,8 +71,7 @@ public class QuestPersistence {
                 try (Reader reader = Files.newBufferedReader(path)) {
                     quests.add(GSON.fromJson(reader, Quest.class));
                 } catch (IOException e) {
-                    // TODO: Add proper error handling/logging
-                    e.printStackTrace();
+                    NQuestBot.LOGGER.error("Failed to load quest definition from {}", path, e);
                 }
             });
         }

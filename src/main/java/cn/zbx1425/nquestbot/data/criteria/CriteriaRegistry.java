@@ -1,6 +1,6 @@
 package cn.zbx1425.nquestbot.data.criteria;
 
-import cn.zbx1425.nquestbot.RuntimeTypeAdapterFactory;
+import cn.zbx1425.nquestbot.data.RuntimeTypeAdapterFactory;
 import cn.zbx1425.nquestbot.data.criteria.mtr.RideLineToStationCriterion;
 import cn.zbx1425.nquestbot.data.criteria.mtr.RideLineCriterion;
 import cn.zbx1425.nquestbot.data.criteria.mtr.RideToStationCriterion;

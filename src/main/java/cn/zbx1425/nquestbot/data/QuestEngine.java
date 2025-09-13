@@ -6,34 +6,21 @@ import cn.zbx1425.nquestbot.data.quest.Step;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
 import cn.zbx1425.nquestbot.data.quest.QuestCompletionData;
 import cn.zbx1425.nquestbot.data.quest.QuestProgress;
-import cn.zbx1425.nquestbot.data.platform.IPlatform;
+import cn.zbx1425.nquestbot.data.platform.IQuestCallbacks;
 import cn.zbx1425.nquestbot.data.platform.PlayerStatus;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class QuestEngine {
 
-    private final IPlatform platform;
-    private Map<UUID, Quest> quests;
-    private Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
+    private final IQuestCallbacks callback;
+    public Map<UUID, Quest> quests;
+    public final Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
 
-    public QuestEngine(IPlatform platform) {
-        this.platform = platform;
-        this.quests = platform.loadQuestDefinitions().stream()
-                .collect(Collectors.toMap(q -> q.id, Function.identity()));
-    }
-
-    public void playerJoin(UUID playerUuid) {
-        playerProfiles.put(playerUuid, platform.loadPlayerProfile(playerUuid));
-    }
-
-    public void playerQuit(UUID playerUuid) {
-        PlayerProfile profile = playerProfiles.remove(playerUuid);
-        if (profile != null) {
-            platform.savePlayerProfile(profile);
-        }
+    public QuestEngine(IQuestCallbacks callback) {
+        this.callback = callback;
+        this.quests = Map.of();
     }
 
     public void updatePlayers(Function<UUID, PlayerStatus> statusProvider) {
@@ -122,7 +109,7 @@ public class QuestEngine {
         // Mark current step as complete
         long now = System.currentTimeMillis();
 
-        platform.onStepCompleted(profile.playerUuid, quest.steps.get(progress.currentStepIndex));
+        callback.onStepCompleted(profile.playerUuid, quest.steps.get(progress.currentStepIndex));
 
         progress.currentStepIndex++;
 
@@ -147,7 +134,7 @@ public class QuestEngine {
             profile.completedQuests.put(progress.questId, completionData);
             profile.totalQuestPoints += quest.questPoints;
 
-            platform.onQuestCompleted(profile.playerUuid, quest, completionData);
+            callback.onQuestCompleted(profile.playerUuid, quest, completionData);
         } else {
             // Advance to next step
             progress.stepStartTimes.put(progress.currentStepIndex, now);
