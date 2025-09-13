@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "cn.zbx1425.nquestbot.NQuestBot"
+    ],
+    "client": [
+      "cn.zbx1425.nquestbot.client.NQuestBotClient"
     ]
   },
   "mixins": [
