@@ -1,6 +1,7 @@
 package cn.zbx1425.nquestbot.data;
 
 import cn.zbx1425.nquestbot.data.quest.Quest;
+import cn.zbx1425.nquestbot.data.criteria.CriteriaRegistry;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -18,7 +19,10 @@ import java.util.stream.Stream;
 
 public class QuestPersistence {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapterFactory(CriteriaRegistry.getFactory())
+            .setPrettyPrinting()
+            .create();
 
     public void savePlayerProfile(PlayerProfile profile, Path basePath) throws IOException {
         Path profilePath = basePath.resolve("profiles").resolve(profile.playerUuid + ".json");

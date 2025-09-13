@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class QuestEngine {
 
     private final IPlatform platform;
-    private Map<String, Quest> quests;
+    private Map<UUID, Quest> quests;
     private Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
 
     public QuestEngine(IPlatform platform) {
@@ -64,7 +64,7 @@ public class QuestEngine {
         }
     }
 
-    public void handleManualTrigger(UUID playerUuid, String triggerStepId, PlayerStatus status) {
+    public void handleManualTrigger(UUID playerUuid, UUID triggerStepId, PlayerStatus status) {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) return;
 
@@ -95,7 +95,7 @@ public class QuestEngine {
         return true;
     }
 
-    public void startQuest(UUID playerUuid, String questId) {
+    public void startQuest(UUID playerUuid, UUID questId) {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) return;
 

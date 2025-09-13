@@ -1,14 +1,13 @@
 package cn.zbx1425.nquestbot.data.quest;
 
-import cn.zbx1425.nquestbot.data.criteria.Criterion;
-
 import java.util.List;
+import java.util.UUID;
 
 public class Quest {
 
-    public String id;
+    public UUID id;
     public String name;
-    public List<String> description;
+    public String description;
     public List<Step> steps;
     public int questPoints;
 }

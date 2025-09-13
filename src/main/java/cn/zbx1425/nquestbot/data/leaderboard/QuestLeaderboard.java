@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 
 public class QuestLeaderboard {
 
-    public final String questId;
+    public final UUID questId;
     private final Map<UUID, Long> scores = new ConcurrentHashMap<>(); // Player UUID -> Duration
 
-    public QuestLeaderboard(String questId) {
+    public QuestLeaderboard(UUID questId) {
         this.questId = questId;
     }
 

@@ -6,7 +6,7 @@ import java.util.UUID;
 public class PlayerProfile {
 
     public UUID playerUuid;
-    public Map<String, QuestProgress> activeQuests;
-    public Map<String, QuestCompletionData> completedQuests;
+    public Map<UUID, QuestProgress> activeQuests;
+    public Map<UUID, QuestCompletionData> completedQuests;
     public int totalQuestPoints;
 }
