@@ -13,7 +13,7 @@ public interface Criterion {
         return this; // Default to stateless
     }
 
-    default void propagateManualTrigger() {
+    default void propagateManualTrigger(String triggerId) {
 
     }
 }

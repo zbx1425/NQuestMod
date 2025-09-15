@@ -49,9 +49,9 @@ public class AndCriterion implements Criterion {
     }
 
     @Override
-    public void propagateManualTrigger() {
+    public void propagateManualTrigger(String triggerId) {
         for (Criterion criterion : criteria) {
-            criterion.propagateManualTrigger();
+            criterion.propagateManualTrigger(triggerId);
         }
     }
 }

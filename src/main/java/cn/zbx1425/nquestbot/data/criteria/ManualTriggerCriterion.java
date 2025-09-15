@@ -6,10 +6,12 @@ import net.minecraft.server.level.ServerPlayer;
 
 public class ManualTriggerCriterion implements Criterion {
 
+    public String id;
     public String description;
     protected transient boolean isTriggered = false;
 
-    public ManualTriggerCriterion(String description) {
+    public ManualTriggerCriterion(String id, String description) {
+        this.id = id;
         this.description = description;
     }
 
@@ -24,7 +26,9 @@ public class ManualTriggerCriterion implements Criterion {
     }
 
     @Override
-    public void propagateManualTrigger() {
-        isTriggered = true;
+    public void propagateManualTrigger(String triggerId) {
+        if (this.id.equals(triggerId)) {
+            isTriggered = true;
+        }
     }
 }

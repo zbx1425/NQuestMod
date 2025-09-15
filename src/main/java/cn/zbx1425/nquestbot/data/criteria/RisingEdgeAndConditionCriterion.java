@@ -43,9 +43,9 @@ public class RisingEdgeAndConditionCriterion implements Criterion {
     }
 
     @Override
-    public void propagateManualTrigger() {
-        triggerCriterion.propagateManualTrigger();
-        conditionCriterion.propagateManualTrigger();
+    public void propagateManualTrigger(String triggerId) {
+        triggerCriterion.propagateManualTrigger(triggerId);
+        conditionCriterion.propagateManualTrigger(triggerId);
     }
 
     @Override

@@ -42,14 +42,14 @@ public class QuestDispatcher {
                 ServerPlayer status = playerGetter.apply(profile.playerUuid);
                 if (status == null) continue; // Player might not be online, but has active quest
 
-                if (checkCriteriaFulfilled(progress, currentStep, status, false)) {
+                if (checkCriteriaFulfilled(progress, currentStep, status, null)) {
                     advanceQuestStep(profile, progress, quest);
                 }
             }
         }
     }
 
-    public void handleManualTrigger(UUID playerUuid, UUID triggerStepId, ServerPlayer player) {
+    public void handleManualTrigger(UUID playerUuid, String triggerId, ServerPlayer player) {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) return;
 
@@ -61,7 +61,7 @@ public class QuestDispatcher {
 
             Step currentStep = quest.steps.get(progress.currentStepIndex);
 
-            if (currentStep.id.equals(triggerStepId) && checkCriteriaFulfilled(progress, currentStep, player, true)) {
+            if (checkCriteriaFulfilled(progress, currentStep, player, triggerId)) {
                 advanceQuestStep(profile, progress, quest);
             }
         }
@@ -126,12 +126,12 @@ public class QuestDispatcher {
         }
     }
 
-    private boolean checkCriteriaFulfilled(QuestProgress progress, Step step, ServerPlayer player, boolean doTrigger) {
+    private boolean checkCriteriaFulfilled(QuestProgress progress, Step step, ServerPlayer player, String triggerId) {
         if (progress.currentStepStatefulCriteria == null) {
             progress.currentStepStatefulCriteria = step.createStatefulCriteria();
         }
-        if (doTrigger) {
-            progress.currentStepStatefulCriteria.propagateManualTrigger();
+        if (triggerId != null) {
+            progress.currentStepStatefulCriteria.propagateManualTrigger(triggerId);
         }
         if (progress.currentStepStatefulCriteria.isFulfilled(player)) {
             progress.currentStepStatefulCriteria = null; // Reset for next step

@@ -38,7 +38,7 @@ public class LatchingCriterion implements Criterion {
     }
 
     @Override
-    public void propagateManualTrigger() {
-        notLatchingCriterion.propagateManualTrigger();
+    public void propagateManualTrigger(String triggerId) {
+        notLatchingCriterion.propagateManualTrigger(triggerId);
     }
 }
