@@ -2,6 +2,7 @@ package cn.zbx1425.nquestbot;
 
 import cn.zbx1425.nquestbot.data.QuestDispatcher;
 import cn.zbx1425.nquestbot.data.QuestPersistence;
+import cn.zbx1425.nquestbot.interop.TscStatus;
 import net.minecraft.server.level.ServerPlayer;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
 import net.fabricmc.api.ModInitializer;
@@ -64,7 +65,10 @@ public class NQuestBot implements ModInitializer {
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             assert questDispatcher != null;
-            if (server.getTickCount() % 20 != 15) return; // Every second
+            if (server.getTickCount() % 40 == 10) {
+                TscStatus.requestUpdate();
+            }
+            if (server.getTickCount() % 40 != 35) return; // Once 2 seconds
             questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
         });
     }

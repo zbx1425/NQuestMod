@@ -1,6 +1,7 @@
 package cn.zbx1425.nquestbot.data.criteria.mtr;
 
 import cn.zbx1425.nquestbot.data.criteria.Criterion;
+import cn.zbx1425.nquestbot.interop.TscStatus;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -15,7 +16,8 @@ public class RideLineCriterion implements Criterion {
 
     @Override
     public boolean isFulfilled(ServerPlayer player) {
-        return lineName.equals(playerStatus.ridingTrainLine);
+        TscStatus.ClientState state = TscStatus.getClientState(player);
+        return state != null && state.line() != null && MtrNameUtil.matches(lineName, state.line());
     }
 
     @Override
