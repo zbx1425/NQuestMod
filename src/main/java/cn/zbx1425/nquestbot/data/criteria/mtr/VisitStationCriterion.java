@@ -1,7 +1,7 @@
 package cn.zbx1425.nquestbot.data.criteria.mtr;
 
 import cn.zbx1425.nquestbot.data.criteria.Criterion;
-import cn.zbx1425.nquestbot.data.platform.PlayerStatus;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
@@ -14,7 +14,7 @@ public class VisitStationCriterion implements Criterion {
     }
 
     @Override
-    public boolean isFulfilled(PlayerStatus playerStatus) {
+    public boolean isFulfilled(ServerPlayer player) {
         if (playerStatus.containingStationAreas == null) return false;
         return playerStatus.containingStationAreas.contains(stationName);
     }

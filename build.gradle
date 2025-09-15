@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-version = project.mod_version
+version = project.mod_version + "+" + project.minecraft_version
 group = project.maven_group
 
 repositories {
@@ -12,6 +12,17 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
 
 dependencies {
@@ -22,6 +33,8 @@ dependencies {
 
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    modImplementation "maven.modrinth:minecraft-transit-railway:FABRIC-${rootProject.mtr_version}+${rootProject.minecraft_version}"
 }
 
 processResources {
@@ -48,6 +61,15 @@ tasks.withType(JavaCompile).configureEach {
         it.options.release = targetJavaVersion
     }
 }
+
+configurations.configureEach {
+    // Force use our version of mod-loader even if dependency requires a lower mod-loader so the game can launch
+    // May cause problems, but they're usually backward compatible
+    resolutionStrategy {
+        force("net.fabricmc:fabric-loader:$project.loader_version")
+    }
+}
+
 
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)

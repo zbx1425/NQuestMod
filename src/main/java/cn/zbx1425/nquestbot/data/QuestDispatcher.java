@@ -6,19 +6,18 @@ import cn.zbx1425.nquestbot.data.quest.Step;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
 import cn.zbx1425.nquestbot.data.quest.QuestCompletionData;
 import cn.zbx1425.nquestbot.data.quest.QuestProgress;
-import cn.zbx1425.nquestbot.data.platform.IQuestCallbacks;
-import cn.zbx1425.nquestbot.data.platform.PlayerStatus;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
 import java.util.function.Function;
 
-public class QuestEngine {
+public class QuestDispatcher {
 
     private final IQuestCallbacks callback;
-    public Map<UUID, Quest> quests;
+    public Map<String, Quest> quests;
     public final Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
 
-    public QuestEngine(IQuestCallbacks callback) {
+    public QuestDispatcher(IQuestCallbacks callback) {
         this.callback = callback;
         this.quests = Map.of();
     }
@@ -27,7 +26,7 @@ public class QuestEngine {
         return playerProfiles.get(playerUuid);
     }
 
-    public void updatePlayers(Function<UUID, PlayerStatus> statusProvider) {
+    public void updatePlayers(Function<UUID, ServerPlayer> playerGetter) {
         for (PlayerProfile profile : playerProfiles.values()) {
             if (profile.activeQuests.isEmpty()) {
                 continue;
@@ -45,7 +44,7 @@ public class QuestEngine {
                     continue; // Needs manual trigger, advance logic is in handleManualTrigger
                 }
 
-                PlayerStatus status = statusProvider.apply(profile.playerUuid);
+                ServerPlayer status = playerGetter.apply(profile.playerUuid);
                 if (status == null) continue; // Player might not be online, but has active quest
 
                 if (areAllCriteriaFulfilled(currentStep, status)) {
@@ -55,7 +54,7 @@ public class QuestEngine {
         }
     }
 
-    public void handleManualTrigger(UUID playerUuid, UUID triggerStepId, PlayerStatus status) {
+    public void handleManualTrigger(UUID playerUuid, UUID triggerStepId, ServerPlayer player) {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) return;
 
@@ -69,7 +68,7 @@ public class QuestEngine {
 
             if (currentStep.needsManualTrigger && currentStep.id.equals(triggerStepId)) {
                 // Check if all other criteria for this step are met
-                if (areAllCriteriaFulfilled(currentStep, status)) {
+                if (areAllCriteriaFulfilled(currentStep, player)) {
                     advanceQuestStep(profile, progress, quest);
                     return; // Assume one trigger per call
                 }
@@ -77,16 +76,16 @@ public class QuestEngine {
         }
     }
 
-    private boolean areAllCriteriaFulfilled(Step step, PlayerStatus status) {
+    private boolean areAllCriteriaFulfilled(Step step, ServerPlayer player) {
         for (Criterion criterion : step.criteria) {
-            if (!criterion.isFulfilled(status)) {
+            if (!criterion.isFulfilled(player)) {
                 return false;
             }
         }
         return true;
     }
 
-    public void startQuest(UUID playerUuid, UUID questId) {
+    public void startQuest(UUID playerUuid, String questId) {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) return;
 

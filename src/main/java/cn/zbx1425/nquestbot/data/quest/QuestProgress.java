@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public class QuestProgress {
 
-    public UUID questId;
+    public String questId;
     public int currentStepIndex;
     public long questStartTime;
     public Map<Integer, Long> stepStartTimes;

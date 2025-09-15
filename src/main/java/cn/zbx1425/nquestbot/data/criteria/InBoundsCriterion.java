@@ -1,7 +1,7 @@
 package cn.zbx1425.nquestbot.data.criteria;
 
-import cn.zbx1425.nquestbot.data.platform.PlayerStatus;
-import cn.zbx1425.nquestbot.data.platform.Vec3d;
+import net.minecraft.server.level.ServerPlayer;
+import cn.zbx1425.nquestbot.data.persistent.Vec3d;
 import net.minecraft.network.chat.Component;
 
 public class InBoundsCriterion implements Criterion {
@@ -17,7 +17,7 @@ public class InBoundsCriterion implements Criterion {
     }
 
     @Override
-    public boolean isFulfilled(PlayerStatus playerStatus) {
+    public boolean isFulfilled(ServerPlayer player) {
         if (playerStatus.position == null) return false;
         return playerStatus.position.isWithin(min, max);
     }

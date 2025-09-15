@@ -12,10 +12,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class QuestPersistence {
@@ -60,16 +57,17 @@ public class QuestPersistence {
         }
     }
 
-    public Collection<Quest> loadQuestDefinitions() throws IOException {
+    public Map<String, Quest> loadQuestDefinitions() throws IOException {
         Path questsDir = basePath.resolve("quests");
-        List<Quest> quests = new ArrayList<>();
+        Map<String, Quest> quests = new HashMap<>();
         if (!Files.isDirectory(questsDir)) {
             return quests;
         }
         try (Stream<Path> files = Files.list(questsDir)) {
             files.filter(path -> path.toString().endsWith(".json")).forEach(path -> {
                 try (Reader reader = Files.newBufferedReader(path)) {
-                    quests.add(GSON.fromJson(reader, Quest.class));
+                    Quest quest = GSON.fromJson(reader, Quest.class);
+                    quests.put(quest.id, quest);
                 } catch (IOException e) {
                     NQuestBot.LOGGER.error("Failed to load quest definition from {}", path, e);
                 }

@@ -16,13 +16,13 @@ public class LeaderboardManager {
     private final Map<UUID, Integer> questPointsLeaderboard = new ConcurrentHashMap<>();
 
     // 每个任务的速通排行榜
-    private final Map<UUID, QuestLeaderboard> timeLeaderboards = new ConcurrentHashMap<>();
+    private final Map<String, QuestLeaderboard> timeLeaderboards = new ConcurrentHashMap<>();
 
     public void updatePlayerQP(PlayerProfile profile) {
         questPointsLeaderboard.put(profile.playerUuid, profile.totalQuestPoints);
     }
 
-    public void recordQuestCompletion(UUID playerUuid, UUID questId, QuestCompletionData data) {
+    public void recordQuestCompletion(UUID playerUuid, String questId, QuestCompletionData data) {
         timeLeaderboards.computeIfAbsent(questId, k -> new QuestLeaderboard(questId))
                 .addEntry(playerUuid, data.durationMillis);
     }
@@ -35,7 +35,7 @@ public class LeaderboardManager {
                 .collect(Collectors.toList());
     }
 
-    public QuestLeaderboard getQuestLeaderboard(UUID questId) {
+    public QuestLeaderboard getQuestLeaderboard(String questId) {
         return timeLeaderboards.get(questId);
     }
 }

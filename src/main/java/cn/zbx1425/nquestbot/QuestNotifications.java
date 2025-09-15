@@ -1,7 +1,7 @@
 package cn.zbx1425.nquestbot;
 
-import cn.zbx1425.nquestbot.data.QuestEngine;
-import cn.zbx1425.nquestbot.data.platform.IQuestCallbacks;
+import cn.zbx1425.nquestbot.data.QuestDispatcher;
+import cn.zbx1425.nquestbot.data.IQuestCallbacks;
 import cn.zbx1425.nquestbot.data.quest.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -22,7 +22,7 @@ public class QuestNotifications implements IQuestCallbacks {
         this.server = server;
     }
 
-    public void onPlayerJoin(QuestEngine questEngine, UUID playerUuid) {
+    public void onPlayerJoin(QuestDispatcher questEngine, UUID playerUuid) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
 
@@ -30,7 +30,7 @@ public class QuestNotifications implements IQuestCallbacks {
     }
 
     @Override
-    public void onQuestStarted(QuestEngine questEngine, UUID playerUuid, Quest quest) {
+    public void onQuestStarted(QuestDispatcher questEngine, UUID playerUuid, Quest quest) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
         player.sendSystemMessage(Component.literal("⭐ Quest Started! ⭐")
@@ -45,7 +45,7 @@ public class QuestNotifications implements IQuestCallbacks {
     }
 
     @Override
-    public void onStepCompleted(QuestEngine questEngine, UUID playerUuid, Quest quest, QuestProgress progress) {
+    public void onStepCompleted(QuestDispatcher questEngine, UUID playerUuid, Quest quest, QuestProgress progress) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
 
@@ -62,7 +62,7 @@ public class QuestNotifications implements IQuestCallbacks {
     }
 
     @Override
-    public void onQuestCompleted(QuestEngine questEngine, UUID playerUuid, Quest quest, QuestCompletionData data) {
+    public void onQuestCompleted(QuestDispatcher questEngine, UUID playerUuid, Quest quest, QuestCompletionData data) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
         player.sendSystemMessage(Component.literal("⭐ Quest Complete! ⭐")
@@ -74,7 +74,7 @@ public class QuestNotifications implements IQuestCallbacks {
                 .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
     }
 
-    public Optional<Component> getBossBarMessage(QuestEngine questEngine, UUID playerUuid) {
+    public Optional<Component> getBossBarMessage(QuestDispatcher questEngine, UUID playerUuid) {
         PlayerProfile profile = questEngine.getPlayerProfile(playerUuid);
         if (profile == null || profile.activeQuests.isEmpty()) {
             return Optional.empty();

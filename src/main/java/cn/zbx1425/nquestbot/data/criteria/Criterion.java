@@ -1,11 +1,11 @@
 package cn.zbx1425.nquestbot.data.criteria;
 
 import net.minecraft.network.chat.Component;
-import cn.zbx1425.nquestbot.data.platform.PlayerStatus;
+import net.minecraft.server.level.ServerPlayer;
 
 public interface Criterion {
 
-    boolean isFulfilled(PlayerStatus playerStatus);
+    boolean isFulfilled(ServerPlayer player);
 
     Component getDisplayRepr();
 }

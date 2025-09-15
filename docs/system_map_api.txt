@@ -1,0 +1,85 @@
+BaseURL: `https://letsplay.minecrafttransitrailway.com/system-map`
+
+`GET /mtr/api/map/stations-and-routes?dimension=0`
+
+Response:
+
+```json
+{
+  "code": 200,
+  "currentTime": 1757844567219,
+  "text": "OK - stations-and-routes",
+  "version": 1,
+  "data": {
+    "stations": [
+      {
+        "id": "738390DF2CC60D0F",
+        "name": "黑李|Blacklea",
+        "color": 8534072,
+        "zone1": 1,
+        "zone2": 0,
+        "zone3": 0,
+        "connections": []
+      },
+      {
+        "id": "70F7330AFF18530F",
+        "name": "利頓|Leeton",
+        "color": 16221987,
+        "zone1": 3,
+        "zone2": 0,
+        "zone3": 0,
+        "connections": [
+          "A5B514A4525927D8"
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "id": "E1147C2BD7FF1CE6",
+        "name": "[WIP]都營櫻通線|Toei Sakuradōri  Line||Test NB",
+        "color": 14232354,
+        "number": "",
+        "type": "train_normal",
+        "circularState": "NONE",
+        "hidden": false,
+        "stations": [ /* Unimportant */ ],
+        "durations": [ /* Unimportant */ ],
+        "depots": [
+          "Toei SA Depot #2"
+        ]
+      },
+      {
+        "id": "5D0F9A2904958CE6",
+        "name": "Einsburg Tramways||T3||Towards E. Hillpark",
+        "color": 7684742,
+        "number": "T3",
+        "type": "train_light_rail",
+        "circularState": "NONE",
+        "hidden": false,
+        "stations": [ /* Unimportant */ ],
+        "durations": [ /* Unimportant */ ],
+        "depots": []
+      },
+      {
+        "id": "7C542AB1293C7EE6",
+        "name": "玖島渡輪|Nine Islands Boat Service||Zirco Mesa via Sand Island",
+        "color": 41186,
+        "number": "",
+        "type": "boat_light_rail",
+        "circularState": "NONE",
+        "hidden": false,
+        "stations": [ /* Unimportant */ ],
+        "durations": [ /* Unimportant */ ],
+        "depots": [
+          "NIFS Sand Island"
+        ]
+      }
+    ],
+    "dimensions": [
+      "minecraft/overworld",
+      "minecraft/the_end",
+      "minecraft/the_nether"
+    ]
+  }
+}
+```

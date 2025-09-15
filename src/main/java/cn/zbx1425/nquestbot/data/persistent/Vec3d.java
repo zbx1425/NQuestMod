@@ -1,4 +1,4 @@
-package cn.zbx1425.nquestbot.data.platform;
+package cn.zbx1425.nquestbot.data.persistent;
 
 public class Vec3d {
     public final double x, y, z;

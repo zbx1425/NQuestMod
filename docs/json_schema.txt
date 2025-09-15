@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NQuestBot Quest",
+  "description": "Schema for a single quest definition file.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "The unique identifier for the quest.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "description": "The display name of the quest.",
+      "type": "string"
+    },
+    "description": {
+      "description": "A list of strings describing the quest.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "description": "An ordered list of steps to complete the quest.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "questPoints": {
+      "description": "The number of quest points awarded upon completion.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "steps",
+    "questPoints"
+  ],
+  "$defs": {
+    "step": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The unique identifier for the step, used for manual triggers.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "description": "The display name of the step.",
+          "type": "string"
+        },
+        "criteria": {
+          "description": "A list of conditions that must be met to complete this step.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterion"
+          }
+        },
+        "needsManualTrigger": {
+          "description": "If true, this step requires a manual trigger and other criteria must be met at the moment of triggering.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "criteria",
+        "needsManualTrigger"
+      ]
+    },
+    "criterion": {
+      "description": "A polymorphic condition for a quest step.",
+      "discriminator": {
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/inBoundsCriterion"
+        },
+        {
+          "$ref": "#/$defs/rideLineCriterion"
+        },
+        {
+          "$ref": "#/$defs/visitStationCriterion"
+        },
+        {
+          "$ref": "#/$defs/rideToStationCriterion"
+        },
+        {
+          "$ref": "#/$defs/rideLineToStationCriterion"
+        }
+      ]
+    },
+    "vec3d": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "inBoundsCriterion": {
+      "properties": {
+        "type": {
+          "const": "InBoundsCriterion"
+        },
+        "min": {
+          "$ref": "#/$defs/vec3d"
+        },
+        "max": {
+          "$ref": "#/$defs/vec3d"
+        }
+      },
+      "required": [
+        "type",
+        "min",
+        "max"
+      ]
+    },
+    "rideLineCriterion": {
+      "properties": {
+        "type": {
+          "const": "RideLineCriterion"
+        },
+        "lineName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "lineName"
+      ]
+    },
+    "visitStationCriterion": {
+      "properties": {
+        "type": {
+          "const": "VisitStationCriterion"
+        },
+        "stationName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "stationName"
+      ]
+    },
+    "rideToStationCriterion": {
+      "properties": {
+        "type": {
+          "const": "RideToStationCriterion"
+        },
+        "stationName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "stationName"
+      ]
+    },
+    "rideLineToStationCriterion": {
+      "properties": {
+        "type": {
+          "const": "RideLineToStationCriterion"
+        },
+        "lineName": {
+          "type": "string"
+        },
+        "stationName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "lineName",
+        "stationName"
+      ]
+    }
+  }
+}
