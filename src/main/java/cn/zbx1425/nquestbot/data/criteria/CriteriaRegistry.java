@@ -10,17 +10,18 @@ public class CriteriaRegistry {
 
     public static RuntimeTypeAdapterFactory<Criterion> getFactory() {
         return RuntimeTypeAdapterFactory.of(Criterion.class, "type")
+                .registerSubtype(ConstantCriterion.class)
                 .registerSubtype(ManualTriggerCriterion.class)
+                .registerSubtype(AndCriterion.class)
+                .registerSubtype(OrCriterion.class)
+                .registerSubtype(LatchingCriterion.class)
+                .registerSubtype(RisingEdgeAndConditionCriterion.class)
+
                 .registerSubtype(InBoundsCriterion.class)
                 .registerSubtype(RideLineToStationCriterion.class)
                 .registerSubtype(RideLineCriterion.class)
                 .registerSubtype(RideToStationCriterion.class)
                 .registerSubtype(VisitStationCriterion.class)
-
-                .registerSubtype(AndCriterion.class)
-                .registerSubtype(OrCriterion.class)
-                .registerSubtype(LatchingCriterion.class)
-                .registerSubtype(RisingEdgeAndConditionCriterion.class)
                 ;
     }
 }

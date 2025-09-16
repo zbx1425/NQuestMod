@@ -14,4 +14,6 @@ public interface IQuestCallbacks {
 
     void onQuestCompleted(QuestDispatcher questEngine, UUID playerUuid, Quest quest, QuestCompletionData data);
 
+    void onQuestAborted(QuestDispatcher questEngine, UUID playerUuid, Quest quest);
+
 }

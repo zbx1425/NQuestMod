@@ -3,6 +3,8 @@ package cn.zbx1425.nquestbot;
 import cn.zbx1425.nquestbot.data.QuestDispatcher;
 import cn.zbx1425.nquestbot.data.QuestPersistence;
 import cn.zbx1425.nquestbot.interop.TscStatus;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import cn.zbx1425.nquestbot.data.quest.PlayerProfile;
 import net.fabricmc.api.ModInitializer;
@@ -20,12 +22,16 @@ import java.nio.file.Path;
 public class NQuestBot implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("NQuestBot");
+    public static NQuestBot INSTANCE;
+
     public QuestPersistence questStorage;
     public QuestDispatcher questDispatcher;
     public QuestNotifications questNotifications;
 
     @Override
     public void onInitialize() {
+        INSTANCE = this;
+
         ServerLifecycleEvents.SERVER_STARTING.register((server) -> {
             try {
                 Path basePath = server.getWorldPath(LevelResource.ROOT).resolve("quest_bot");
@@ -71,5 +77,13 @@ public class NQuestBot implements ModInitializer {
             if (server.getTickCount() % 40 != 35) return; // Once 2 seconds
             questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
         });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, ctx, selection) ->
+            Commands.register(dispatcher, net.minecraft.commands.Commands::literal, net.minecraft.commands.Commands::argument)
+        );
+    }
+
+    public static ResourceLocation id(String path) {
+        return new ResourceLocation("nquestbot", path);
     }
 }

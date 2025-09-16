@@ -40,7 +40,7 @@ public class QuestPersistence {
         Path profilePath = basePath.resolve("profiles").resolve(playerUuid + ".json");
         if (!Files.exists(profilePath)) {
             // Return a new profile if one doesn't exist
-            PlayerProfile newProfile = new PlayerProfile();
+            PlayerProfile newProfile = new PlayerProfile(playerUuid);
             newProfile.playerUuid = playerUuid;
             return newProfile;
         }
@@ -68,11 +68,19 @@ public class QuestPersistence {
                 try (Reader reader = Files.newBufferedReader(path)) {
                     Quest quest = GSON.fromJson(reader, Quest.class);
                     quests.put(quest.id, quest);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     NQuestBot.LOGGER.error("Failed to load quest definition from {}", path, e);
                 }
             });
         }
         return quests;
+    }
+
+    public static String serializeQuest(Quest quest) {
+        return GSON.toJson(quest);
+    }
+
+    public static Quest deserializeQuest(String json) throws Exception {
+        return GSON.fromJson(json, Quest.class);
     }
 }

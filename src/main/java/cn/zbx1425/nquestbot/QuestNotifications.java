@@ -7,12 +7,17 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.bossevents.CustomBossEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.BossEvent;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class QuestNotifications implements IQuestCallbacks {
 
@@ -25,8 +30,7 @@ public class QuestNotifications implements IQuestCallbacks {
     public void onPlayerJoin(QuestDispatcher questEngine, UUID playerUuid) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
-
-        
+        updateBossBarForPlayer(questEngine, player);
     }
 
     @Override
@@ -42,6 +46,7 @@ public class QuestNotifications implements IQuestCallbacks {
             player.sendSystemMessage(Component.literal("▶ First: ").withStyle(ChatFormatting.AQUA)
                     .append(firstStep.criteria.getDisplayRepr()), false);
         }
+        updateBossBarForPlayer(questEngine, player);
     }
 
     @Override
@@ -59,6 +64,7 @@ public class QuestNotifications implements IQuestCallbacks {
                     .append(nextStep.criteria.getDisplayRepr());
             player.sendSystemMessage(nextStepMsg, false);
         }
+        updateBossBarForPlayer(questEngine, player);
     }
 
     @Override
@@ -72,9 +78,37 @@ public class QuestNotifications implements IQuestCallbacks {
                 .append(Component.literal(formatDuration(data.durationMillis)).withStyle(ChatFormatting.AQUA)), false);
         player.sendSystemMessage(Component.literal("  Quest Points: ").withStyle(ChatFormatting.WHITE)
                 .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
+        updateBossBarForPlayer(questEngine, player);
     }
 
-    public Optional<Component> getBossBarMessage(QuestDispatcher questEngine, UUID playerUuid) {
+    @Override
+    public void onQuestAborted(QuestDispatcher questEngine, UUID playerUuid, Quest quest) {
+        ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
+        if (player == null) return;
+        player.sendSystemMessage(Component.literal("✘ Quest Aborted ✘")
+                .withStyle(Style.EMPTY.withColor(ChatFormatting.RED).withBold(true)), false);
+        player.sendSystemMessage(Component.literal(quest.name).withStyle(ChatFormatting.YELLOW), false);
+        updateBossBarForPlayer(questEngine, player);
+    }
+
+    private void updateBossBarForPlayer(QuestDispatcher questEngine, ServerPlayer player) {
+        Optional<Consumer<CustomBossEvent>> bossBarMessage = getBossBarMessage(questEngine, player.getGameProfile().getId());
+        ResourceLocation playerId = NQuestBot.id(player.getGameProfile().getId().toString());
+        CustomBossEvent event = player.getServer().getCustomBossEvents().get(playerId);
+        if (bossBarMessage.isPresent()) {
+            if (event == null) {
+                event = player.getServer().getCustomBossEvents().create(playerId, Component.empty());
+            }
+            bossBarMessage.get().accept(event);
+            event.setPlayers(List.of(player));
+        } else {
+            if (event != null) {
+                player.getServer().getCustomBossEvents().remove(event);
+            }
+        }
+    }
+
+    public Optional<Consumer<CustomBossEvent>> getBossBarMessage(QuestDispatcher questEngine, UUID playerUuid) {
         PlayerProfile profile = questEngine.getPlayerProfile(playerUuid);
         if (profile == null || profile.activeQuests.isEmpty()) {
             return Optional.empty();
@@ -86,7 +120,13 @@ public class QuestNotifications implements IQuestCallbacks {
                 return null;
             }
             Step currentStep = quest.steps.get(progress.currentStepIndex);
-            return currentStep.criteria.getDisplayRepr();
+            return (event) -> {
+                 event.setName(currentStep.criteria.getDisplayRepr());
+                 event.setMax(quest.steps.size());
+                 event.setValue(progress.currentStepIndex);
+                 event.setColor(BossEvent.BossBarColor.BLUE);
+                 event.setOverlay(BossEvent.BossBarOverlay.PROGRESS);
+            };
         });
     }
 

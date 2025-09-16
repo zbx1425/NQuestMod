@@ -49,9 +49,9 @@ public class QuestDispatcher {
         }
     }
 
-    public void handleManualTrigger(UUID playerUuid, String triggerId, ServerPlayer player) {
+    public void triggerManualCriterion(UUID playerUuid, String triggerId, ServerPlayer player) throws QuestException {
         PlayerProfile profile = playerProfiles.get(playerUuid);
-        if (profile == null) return;
+        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
 
         for (QuestProgress progress : new ArrayList<>(profile.activeQuests.values())) {
             Quest quest = quests.get(progress.questId);
@@ -67,17 +67,13 @@ public class QuestDispatcher {
         }
     }
 
-    public void startQuest(UUID playerUuid, String questId) {
+    public void startQuest(UUID playerUuid, String questId) throws QuestException {
         PlayerProfile profile = playerProfiles.get(playerUuid);
-        if (profile == null) return;
-
+        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         Quest quest = quests.get(questId);
-        if (quest == null) return; // Quest doesn't exist
-
-        // Player is already doing or has completed this quest
-        if (profile.activeQuests.containsKey(questId) || profile.completedQuests.containsKey(questId)) {
-            return;
-        }
+        if (quest == null) throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
+        if (profile.activeQuests.containsKey(questId)) throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);
+        if (!profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_ONLY_ONE_AT_A_TIME);
 
         QuestProgress progress = new QuestProgress();
         progress.questId = questId;
@@ -88,6 +84,19 @@ public class QuestDispatcher {
 
         profile.activeQuests.put(questId, progress);
         callback.onQuestStarted(this, playerUuid, quest);
+    }
+
+    public void stopQuests(UUID playerUuid) throws QuestException {
+        PlayerProfile profile = playerProfiles.get(playerUuid);
+        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
+        if (profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_NOT_STARTED);
+        for (QuestProgress progress : profile.activeQuests.values()) {
+            Quest quest = quests.get(progress.questId);
+            if (quest != null) {
+                callback.onQuestAborted(this, playerUuid, quest);
+            }
+        }
+        profile.activeQuests.clear();
     }
 
     private void advanceQuestStep(PlayerProfile profile, QuestProgress progress, Quest quest) {
