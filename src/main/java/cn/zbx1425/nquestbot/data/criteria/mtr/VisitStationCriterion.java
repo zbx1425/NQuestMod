@@ -1,5 +1,6 @@
 package cn.zbx1425.nquestbot.data.criteria.mtr;
 
+import cn.zbx1425.nquestbot.NQuestBot;
 import cn.zbx1425.nquestbot.data.criteria.Criterion;
 import cn.zbx1425.nquestbot.interop.TscStatus;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,6 +18,10 @@ public class VisitStationCriterion implements Criterion {
     @Override
     public boolean isFulfilled(ServerPlayer player) {
         TscStatus.ClientState state = TscStatus.getClientState(player);
+
+        NQuestBot.LOGGER.info("State: {}", state);
+
+        if (state == null) return false;
         boolean stationFulfilled = false;
         for (var station : state.stations()) {
             if (MtrNameUtil.matches(stationName, station)) {
@@ -30,6 +35,6 @@ public class VisitStationCriterion implements Criterion {
     @Override
     public Component getDisplayRepr() {
         return Component.literal("Visit ").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(stationName).withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.BOLD));
+            .append(Component.literal(stationName).withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
     }
 }

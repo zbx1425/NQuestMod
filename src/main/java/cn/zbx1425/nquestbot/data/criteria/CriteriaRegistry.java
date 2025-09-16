@@ -14,6 +14,7 @@ public class CriteriaRegistry {
                 .registerSubtype(ManualTriggerCriterion.class)
                 .registerSubtype(AndCriterion.class)
                 .registerSubtype(OrCriterion.class)
+                .registerSubtype(NotCriterion.class)
                 .registerSubtype(LatchingCriterion.class)
                 .registerSubtype(RisingEdgeAndConditionCriterion.class)
 

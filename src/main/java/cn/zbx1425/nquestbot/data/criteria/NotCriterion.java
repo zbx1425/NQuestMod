@@ -1,29 +1,26 @@
 package cn.zbx1425.nquestbot.data.criteria;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-public class ManualTriggerCriterion implements Criterion {
+public class NotCriterion implements Criterion {
 
-    public String id;
+    protected Criterion baseCriterion;
     public String description;
-    protected transient boolean isTriggered = false;
 
-    public ManualTriggerCriterion(String id, String description) {
-        this.id = id;
+    public NotCriterion(Criterion baseCriterion, String description) {
+        this.baseCriterion = baseCriterion;
         this.description = description;
     }
 
-    public ManualTriggerCriterion(ManualTriggerCriterion singleton) {
-        this.id = singleton.id;
+    public NotCriterion(NotCriterion singleton) {
+        this.baseCriterion = singleton.baseCriterion.createStatefulInstance();
         this.description = singleton.description;
-        this.isTriggered = false;
     }
 
     @Override
     public boolean isFulfilled(ServerPlayer player) {
-        return isTriggered;
+        return !baseCriterion.isFulfilled(player);
     }
 
     @Override
@@ -33,13 +30,11 @@ public class ManualTriggerCriterion implements Criterion {
 
     @Override
     public Criterion createStatefulInstance() {
-        return new ManualTriggerCriterion(this);
+        return new NotCriterion(this);
     }
 
     @Override
     public void propagateManualTrigger(String triggerId) {
-        if (this.id.equals(triggerId)) {
-            isTriggered = true;
-        }
+        baseCriterion.propagateManualTrigger(triggerId);
     }
 }

@@ -71,11 +71,11 @@ public class NQuestBot implements ModInitializer {
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             assert questDispatcher != null;
-            if (server.getTickCount() % 40 == 10) {
-                TscStatus.requestUpdate();
+            if (server.getTickCount() % 20 == 5) {
+                TscStatus.requestUpdate(server);
             }
-            if (server.getTickCount() % 40 != 35) return; // Once 2 seconds
-            questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
+            if (server.getTickCount() % 20 != 15) return; // Once 1 second
+            TscStatus.isAnyQuestGoingOn = questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, ctx, selection) ->

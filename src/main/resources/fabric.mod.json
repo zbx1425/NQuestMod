@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "icon": "assets/nquestbot/icon.png",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "cn.zbx1425.nquestbot.NQuestBot"

@@ -41,7 +41,7 @@ public class QuestNotifications implements IQuestCallbacks {
                 .withStyle(Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(true)), false);
         player.sendSystemMessage(Component.literal(quest.name).withStyle(ChatFormatting.YELLOW), false);
 
-        if (quest.steps.size() > 0) {
+        if (!quest.steps.isEmpty()) {
             Step firstStep = quest.steps.get(0);
             player.sendSystemMessage(Component.literal("▶ First: ").withStyle(ChatFormatting.AQUA)
                     .append(firstStep.criteria.getDisplayRepr()), false);
@@ -54,9 +54,11 @@ public class QuestNotifications implements IQuestCallbacks {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
 
-        Step completedStep = quest.steps.get(progress.currentStepIndex);
-        player.sendSystemMessage(Component.literal("✔ Step Complete: ").withStyle(ChatFormatting.GREEN)
+        if (progress.currentStepIndex > 0) {
+            Step completedStep = quest.steps.get(progress.currentStepIndex - 1);
+            player.sendSystemMessage(Component.literal("✔ Step Complete: ").withStyle(ChatFormatting.GREEN)
                 .append(completedStep.criteria.getDisplayRepr()), false);
+        }
 
         if (progress.currentStepIndex < quest.steps.size()) {
             Step nextStep = quest.steps.get(progress.currentStepIndex);
@@ -98,11 +100,14 @@ public class QuestNotifications implements IQuestCallbacks {
         if (bossBarMessage.isPresent()) {
             if (event == null) {
                 event = player.getServer().getCustomBossEvents().create(playerId, Component.empty());
+                event.setPlayers(List.of(player));
+                event.setColor(BossEvent.BossBarColor.BLUE);
+                event.setOverlay(BossEvent.BossBarOverlay.PROGRESS);
             }
             bossBarMessage.get().accept(event);
-            event.setPlayers(List.of(player));
         } else {
             if (event != null) {
+                event.removeAllPlayers();
                 player.getServer().getCustomBossEvents().remove(event);
             }
         }
@@ -124,8 +129,6 @@ public class QuestNotifications implements IQuestCallbacks {
                  event.setName(currentStep.criteria.getDisplayRepr());
                  event.setMax(quest.steps.size());
                  event.setValue(progress.currentStepIndex);
-                 event.setColor(BossEvent.BossBarColor.BLUE);
-                 event.setOverlay(BossEvent.BossBarOverlay.PROGRESS);
             };
         });
     }

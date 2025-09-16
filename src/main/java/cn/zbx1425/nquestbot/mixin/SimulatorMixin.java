@@ -1,7 +1,9 @@
 package cn.zbx1425.nquestbot.mixin;
 
+import cn.zbx1425.nquestbot.NQuestBot;
 import cn.zbx1425.nquestbot.interop.TscStatus;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.mtr.core.data.Position;
 import org.mtr.core.simulation.Simulator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,8 +25,10 @@ public class SimulatorMixin {
         Simulator simulator = (Simulator)(Object)this;
 
         simulator.clients.forEach(client -> {
+            Position clientPosition = TscStatus.CLIENT_POSITIONS.get(client.uuid);
+            if (clientPosition == null) return;
             TscStatus.CLIENTS.put(client.uuid, new TscStatus.ClientState(
-                simulator.stations.stream().filter(station -> station.inArea(client.getPosition()))
+                simulator.stations.stream().filter(station -> station.inArea(clientPosition))
                         .collect(ObjectArrayList::new, (list, station) ->
                                 list.add(new TscStatus.NameIdData(station.getName(), station.getId())),
                                 ObjectArrayList::addAll)
@@ -34,10 +38,11 @@ public class SimulatorMixin {
         simulator.sidings.forEach(siding -> siding.iterateVehiclesAndRidingEntities((vehicleExtraData, vehicleRidingEntity) -> {
             final TscStatus.ClientState client = TscStatus.CLIENTS.get(vehicleRidingEntity.uuid);
             if (client != null) {
+                long routeId = vehicleExtraData.getThisRouteId();
+                if (routeId == 0) routeId = vehicleExtraData.getNextRouteId();
+                if (routeId == 0) routeId = vehicleExtraData.getPreviousRouteId();
                 TscStatus.CLIENTS.put(vehicleRidingEntity.uuid, new TscStatus.ClientState(
-                        client,
-                        simulator.routeIdMap.get(vehicleExtraData.getThisRouteId())
-                ));
+                        client,  simulator.routeIdMap.get(routeId)));
             }
         }));
     }

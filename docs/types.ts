@@ -38,6 +38,12 @@ export interface RideLineToStationCriterion {
   stationName: string
 }
 
+export interface ConstantCriterion {
+  type: 'ConstantCriterion'
+  value: boolean
+  description: string
+}
+
 export interface AndCriterion {
   type: 'AndCriterion'
   criteria: Criterion[]
@@ -50,7 +56,7 @@ export interface OrCriterion {
 
 export interface LatchingCriterion {
   type: 'LatchingCriterion'
-  notLatchingCriterion: Criterion
+  baseCriterion: Criterion
 }
 
 export interface RisingEdgeAndConditionCriterion {
@@ -67,6 +73,7 @@ export type Criterion =
   | VisitStationCriterion
   | RideToStationCriterion
   | RideLineToStationCriterion
+  | ConstantCriterion
   | AndCriterion
   | OrCriterion
   | LatchingCriterion

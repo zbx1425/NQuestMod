@@ -8,6 +8,7 @@ import cn.zbx1425.nquestbot.data.quest.QuestProgress;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class QuestDispatcher {
@@ -25,7 +26,8 @@ public class QuestDispatcher {
         return playerProfiles.get(playerUuid);
     }
 
-    public void updatePlayers(Function<UUID, ServerPlayer> playerGetter) {
+    public boolean updatePlayers(Function<UUID, ServerPlayer> playerGetter) {
+        boolean isAnyQuestGoingOn = false;
         for (PlayerProfile profile : playerProfiles.values()) {
             if (profile.activeQuests.isEmpty()) {
                 continue;
@@ -37,6 +39,7 @@ public class QuestDispatcher {
                 if (quest == null || progress.currentStepIndex >= quest.steps.size()) {
                     continue;
                 }
+                isAnyQuestGoingOn = true;
 
                 Step currentStep = quest.steps.get(progress.currentStepIndex);
                 ServerPlayer status = playerGetter.apply(profile.playerUuid);
@@ -47,6 +50,7 @@ public class QuestDispatcher {
                 }
             }
         }
+        return isAnyQuestGoingOn;
     }
 
     public void triggerManualCriterion(UUID playerUuid, String triggerId, ServerPlayer player) throws QuestException {
@@ -90,22 +94,21 @@ public class QuestDispatcher {
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         if (profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_NOT_STARTED);
-        for (QuestProgress progress : profile.activeQuests.values()) {
+        List<QuestProgress> progresses = new ArrayList<>(profile.activeQuests.values());
+        profile.activeQuests.clear();
+        for (QuestProgress progress : progresses) {
             Quest quest = quests.get(progress.questId);
             if (quest != null) {
                 callback.onQuestAborted(this, playerUuid, quest);
             }
         }
-        profile.activeQuests.clear();
     }
 
     private void advanceQuestStep(PlayerProfile profile, QuestProgress progress, Quest quest) {
         // Mark current step as complete
         long now = System.currentTimeMillis();
-
-        callback.onStepCompleted(this, profile.playerUuid, quest, progress);
-
         progress.currentStepIndex++;
+        callback.onStepCompleted(this, profile.playerUuid, quest, progress);
 
         if (progress.currentStepIndex >= quest.steps.size()) {
             // Quest completed
