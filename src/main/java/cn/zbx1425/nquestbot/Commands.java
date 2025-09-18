@@ -24,6 +24,10 @@ public class Commands {
                                 Function<String, LiteralArgumentBuilder<CommandSourceStack>> literal,
                                 BiFunction<String, ArgumentType<?>, RequiredArgumentBuilder<CommandSourceStack, ?>> argument) {
         dispatcher.register(literal.apply("nquest")
+            .executes(ctx -> {
+                NQuestBot.INSTANCE.guiManager.openEntry(ctx.getSource().getPlayerOrException());
+                return 1;
+            })
             .then(literal.apply("start")
                 .then(argument.apply("participant", EntityArgument.player())
                     .requires(source -> source.hasPermission(2))

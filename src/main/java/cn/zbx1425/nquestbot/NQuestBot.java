@@ -2,6 +2,8 @@ package cn.zbx1425.nquestbot;
 
 import cn.zbx1425.nquestbot.data.QuestDispatcher;
 import cn.zbx1425.nquestbot.data.QuestPersistence;
+import cn.zbx1425.nquestbot.data.ranking.RankingManager;
+import cn.zbx1425.nquestbot.gui.GuiManager;
 import cn.zbx1425.nquestbot.interop.TscStatus;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +29,8 @@ public class NQuestBot implements ModInitializer {
     public QuestPersistence questStorage;
     public QuestDispatcher questDispatcher;
     public QuestNotifications questNotifications;
+    public RankingManager rankingManager;
+    public GuiManager guiManager;
 
     @Override
     public void onInitialize() {
@@ -39,8 +43,10 @@ public class NQuestBot implements ModInitializer {
                 // Well this isn't clean but we only have one server instance anyway
                 questStorage = new QuestPersistence(basePath);
                 questNotifications = new QuestNotifications(server);
-                questDispatcher = new QuestDispatcher(questNotifications);
+                rankingManager = new RankingManager(basePath.resolve("ranking.json"));
+                questDispatcher = new QuestDispatcher(questNotifications, rankingManager);
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
+                guiManager = new GuiManager(this);
             } catch (IOException ex) {
                 LOGGER.error("Failed to initialize quest storage", ex);
             }

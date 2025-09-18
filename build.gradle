@@ -23,6 +23,10 @@ repositories {
             includeGroup "maven.modrinth"
         }
     }
+    exclusiveContent {
+        forRepository { maven { url 'https://maven.nucleoid.xyz' } }
+        filter { includeGroup "eu.pb4" }
+    }
 }
 
 dependencies {
@@ -35,6 +39,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     modImplementation "maven.modrinth:minecraft-transit-railway:FABRIC-${rootProject.mtr_version}+${rootProject.minecraft_version}"
+
+    modImplementation include("eu.pb4:sgui:${rootProject:sgui_version}")
 }
 
 processResources {
