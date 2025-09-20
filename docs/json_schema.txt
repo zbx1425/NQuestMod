@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "NQuestBot Quest",
+  "title": "NQuestMod Quest",
   "description": "Schema for a single quest definition file.",
   "type": "object",
   "properties": {

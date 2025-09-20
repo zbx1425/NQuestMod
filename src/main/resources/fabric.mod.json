@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "nquestbot",
+  "id": "nquestmod",
   "version": "${version}",
-  "name": "Nemo's Quest Bot",
+  "name": "Nemo's Quest Mod",
   "description": "Make players go to places around the world.",
   "authors": [
     "Zbx1425"
@@ -12,15 +12,15 @@
     "repo": "https://github.com/zbx1425/NQuestBot"
   },
   "license": "MIT",
-  "icon": "assets/nquestbot/icon.png",
+  "icon": "assets/nquestmod/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "cn.zbx1425.nquestbot.NQuestBot"
+      "cn.zbx1425.nquestmod.NQuestMod"
     ]
   },
   "mixins": [
-    "nquestbot.mixins.json"
+    "nquestmod.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
