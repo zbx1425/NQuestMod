@@ -19,8 +19,6 @@ public class VisitStationCriterion implements Criterion {
     public boolean isFulfilled(ServerPlayer player) {
         TscStatus.ClientState state = TscStatus.getClientState(player);
 
-        NQuestBot.LOGGER.info("State: {}", state);
-
         if (state == null) return false;
         boolean stationFulfilled = false;
         for (var station : state.stations()) {

@@ -1,5 +1,6 @@
 package cn.zbx1425.nquestbot.data;
 
+import cn.zbx1425.nquestbot.CommandSigner;
 import cn.zbx1425.nquestbot.NQuestBot;
 import cn.zbx1425.nquestbot.data.quest.Quest;
 import cn.zbx1425.nquestbot.data.quest.QuestCategory;
@@ -81,6 +82,21 @@ public class QuestPersistence {
         Files.createDirectories(categoriesFile.getParent());
         try (Writer writer = Files.newBufferedWriter(categoriesFile)) {
             GSON.toJson(categories, writer);
+        }
+    }
+
+    public CommandSigner getOrCreateCommandSigner() throws IOException {
+        Path signerFile = basePath.resolve("sign_secret.json");
+        if (Files.exists(signerFile)) {
+            try (Reader reader = Files.newBufferedReader(signerFile)) {
+                return GSON.fromJson(reader, CommandSigner.class);
+            }
+        } else {
+            CommandSigner signer = new CommandSigner();
+            try (Writer writer = Files.newBufferedWriter(signerFile)) {
+                GSON.toJson(signer, writer);
+            }
+            return signer;
         }
     }
 

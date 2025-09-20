@@ -10,6 +10,7 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
@@ -70,17 +71,20 @@ public class Commands {
             .then(literal.apply("quests")
                 .requires(source -> source.hasPermission(2))
                 .then(literal.apply("set")
+                    .then(argument.apply("sign", StringArgumentType.word())
                     .then(argument.apply("json", StringArgumentType.greedyString())
                         .executes(ctx -> {
+                            validateTimestampSignature(ctx);
                             Quest quest = setQuestDefinition(StringArgumentType.getString(ctx, "json"));
                             Component message = Component.literal("Quest definition accepted with ID: ")
                                 .append(Component.literal(quest.id).withStyle(net.minecraft.ChatFormatting.AQUA));
                             ctx.getSource().sendSuccess(() -> message, false);
                             return 1;
                         })
-                    )
+                    ))
                 )
                 .then(literal.apply("get")
+                    .requires(source -> source.hasPermission(3))
                     .then(argument.apply("quest_id", StringArgumentType.string())
                         .executes(ctx -> {
                             String questJson = getQuestDefinition(StringArgumentType.getString(ctx, "quest_id"));
@@ -100,6 +104,7 @@ public class Commands {
                     )
                 )
                 .then(literal.apply("remove")
+                    .requires(source -> source.hasPermission(3))
                     .then(argument.apply("quest_id", StringArgumentType.string())
                         .executes(ctx -> {
                             String questId = StringArgumentType.getString(ctx, "quest_id");
@@ -113,10 +118,12 @@ public class Commands {
                 )
             )
             .then(literal.apply("categories")
-                .requires(source -> source.hasPermission(3))
+                .requires(source -> source.hasPermission(2))
                 .then(literal.apply("set")
+                    .then(argument.apply("sign", StringArgumentType.word())
                     .then(argument.apply("json", StringArgumentType.greedyString())
                         .executes(ctx -> {
+                            validateTimestampSignature(ctx);
                             try {
                                 Map<String, QuestCategory> categories = QuestPersistence.deserializeCategories(StringArgumentType.getString(ctx, "json"));
                                 NQuestBot.INSTANCE.questCategories.clear();
@@ -129,9 +136,10 @@ public class Commands {
                             ctx.getSource().sendSuccess(() -> Component.literal("Quest categories updated."), false);
                             return 1;
                         })
-                    )
+                    ))
                 )
                 .then(literal.apply("get")
+                    .requires(source -> source.hasPermission(3))
                     .executes(ctx -> {
                         String categoriesJson = QuestPersistence.serializeCategories(NQuestBot.INSTANCE.questCategories);
                         Component message = Component.literal("Quest Categories JSON Data: ")
@@ -149,7 +157,39 @@ public class Commands {
                     })
                 )
             )
+            .then(literal.apply("sign")
+                .requires(source -> source.hasPermission(3))
+                .executes(ctx -> {
+                    CommandSourceStack source = ctx.getSource();
+                    if (NQuestBot.INSTANCE.commandSigner == null) {
+                        throw new SimpleCommandExceptionType(Component.literal("Command signing is not set up.")).create();
+                    }
+                    String signedTimestamp = NQuestBot.INSTANCE.commandSigner.signTimestamp();
+                    Component message = Component.literal("Timestamp signature (valid in 5 mins): ")
+                        .append(Component.literal(signedTimestamp).withStyle(style ->
+                            style.withUnderlined(true)
+                                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                                    net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, signedTimestamp))
+                                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                                    Component.literal("Click to copy to clipboard")))
+                                .withColor(net.minecraft.ChatFormatting.AQUA)
+                        ));
+                    source.sendSuccess(() -> message, false);
+                    return 1;
+                })
+            )
         );
+    }
+
+    private static void validateTimestampSignature(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        if (NQuestBot.INSTANCE.commandSigner == null) {
+            throw new SimpleCommandExceptionType(Component.literal("Command signing is not set up.")).create();
+        }
+        String providedSignature = StringArgumentType.getString(ctx, "sign");
+        if (!NQuestBot.INSTANCE.commandSigner.verifySignedTimestamp(providedSignature, 5 * 60 * 1000)) {
+            throw new SimpleCommandExceptionType(Component.literal("Invalid or expired signature.")).create();
+        }
     }
 
     private static void startQuest(ServerPlayer participant, String questId) throws CommandSyntaxException {

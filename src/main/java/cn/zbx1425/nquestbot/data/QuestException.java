@@ -21,7 +21,8 @@ public class QuestException extends Exception {
     }
 
     public Component getDisplayRepr() {
-        return Component.translatable(type.translationKey);
+//        return Component.translatable(type.translationKey);
+        return Component.literal(type.readableName);
     }
 
     public enum Type {

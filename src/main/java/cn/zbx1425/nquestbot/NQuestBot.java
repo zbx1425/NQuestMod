@@ -36,6 +36,8 @@ public class NQuestBot implements ModInitializer {
     public QuestNotifications questNotifications;
     public Map<String, QuestCategory> questCategories = new HashMap<>();
 
+    public CommandSigner commandSigner;
+
     @Override
     public void onInitialize() {
         INSTANCE = this;
@@ -52,6 +54,8 @@ public class NQuestBot implements ModInitializer {
                 questNotifications = new QuestNotifications(server);
                 questDispatcher = new QuestDispatcher(questNotifications, userDatabase);
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
+
+                commandSigner = questStorage.getOrCreateCommandSigner();
             } catch (IOException | SQLException ex) {
                 LOGGER.error("Failed to initialize NQuestBot", ex);
             }
