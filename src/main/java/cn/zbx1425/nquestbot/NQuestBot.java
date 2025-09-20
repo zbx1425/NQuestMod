@@ -3,6 +3,7 @@ package cn.zbx1425.nquestbot;
 import cn.zbx1425.nquestbot.data.QuestDispatcher;
 import cn.zbx1425.nquestbot.data.QuestPersistence;
 import cn.zbx1425.nquestbot.data.ranking.QuestUserDatabase;
+import cn.zbx1425.nquestbot.sgui.GuiManager;
 import cn.zbx1425.nquestbot.interop.TscStatus;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.resources.ResourceLocation;
@@ -30,6 +31,7 @@ public class NQuestBot implements ModInitializer {
     public QuestUserDatabase userDatabase;
     public QuestDispatcher questDispatcher;
     public QuestNotifications questNotifications;
+    public GuiManager guiManager;
 
     @Override
     public void onInitialize() {
@@ -45,6 +47,7 @@ public class NQuestBot implements ModInitializer {
                 questNotifications = new QuestNotifications(server);
                 questDispatcher = new QuestDispatcher(questNotifications, userDatabase);
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
+                guiManager = new GuiManager(this);
             } catch (IOException | SQLException ex) {
                 LOGGER.error("Failed to initialize NQuestBot", ex);
             }

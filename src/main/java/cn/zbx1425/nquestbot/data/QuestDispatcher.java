@@ -133,6 +133,9 @@ public class QuestDispatcher {
                 lastTimestamp = stepEndTimestamp;
             }
 
+            profile.totalQuestPoints += quest.questPoints;
+            profile.totalQuestCompletions += 1;
+
             callback.onQuestCompleted(this, profile.playerUuid, quest, completionData);
             try {
                 databaseManager.addQuestCompletion(profile.playerUuid, quest, completionData);

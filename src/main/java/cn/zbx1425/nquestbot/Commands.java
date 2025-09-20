@@ -3,6 +3,7 @@ package cn.zbx1425.nquestbot;
 import cn.zbx1425.nquestbot.data.QuestException;
 import cn.zbx1425.nquestbot.data.QuestPersistence;
 import cn.zbx1425.nquestbot.data.quest.Quest;
+import cn.zbx1425.nquestbot.sgui.CurrentQuestScreen;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -24,6 +25,10 @@ public class Commands {
                                 Function<String, LiteralArgumentBuilder<CommandSourceStack>> literal,
                                 BiFunction<String, ArgumentType<?>, RequiredArgumentBuilder<CommandSourceStack, ?>> argument) {
         dispatcher.register(literal.apply("nquest")
+            .executes(ctx -> {
+                NQuestBot.INSTANCE.guiManager.openEntry(ctx.getSource().getPlayerOrException());
+                return 1;
+            })
             .then(literal.apply("start")
                 .then(argument.apply("participant", EntityArgument.player())
                     .requires(source -> source.hasPermission(2))
@@ -33,12 +38,6 @@ public class Commands {
                             return 1;
                         })
                     )
-                )
-                .then(argument.apply("quest_id", StringArgumentType.string())
-                    .executes(ctx -> {
-                        startQuest(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "quest_id"));
-                        return 1;
-                    })
                 )
             )
             .then(literal.apply("stop")

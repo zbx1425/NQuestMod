@@ -110,8 +110,8 @@ public class QuestUserDatabase {
             try (PreparedStatement stmt = connection.prepareStatement(
                     "UPDATE player_profiles SET " +
                             "total_quest_points = total_quest_points + ?, " +
-                            "total_quest_completions = total_quest_completions + 1 " +
-                            "json = '{\"activeQuests\":{}}'" + // We only doing one quest at a time, so just clear activeQuests
+                            "total_quest_completions = total_quest_completions + 1, " +
+                            "json = '{}' " + // We only doing one quest at a time, so just clear activeQuests
                             "WHERE player_uuid = ?")) {
                 stmt.setInt(1, quest.questPoints);
                 stmt.setString(2, playerUuid.toString());
