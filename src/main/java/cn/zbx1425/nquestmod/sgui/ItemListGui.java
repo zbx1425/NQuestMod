@@ -52,7 +52,7 @@ public abstract class ItemListGui<TItem> extends ParentedGui {
             List<TItem> pageItems = pageItemsAndSize.getLeft();
             int totalSize = pageItemsAndSize.getRight();
             for (int slot = rowContentStarts * 9; slot < (rowContentEnds + 1) * 9; slot++) {
-                int index = slot - rowContentStarts * 9 + offset;
+                int index = slot - rowContentStarts * 9;
                 if (index < pageItems.size()) {
                     TItem item = pageItems.get(index);
                     setSlot(slot, createElementForItem(item, index));

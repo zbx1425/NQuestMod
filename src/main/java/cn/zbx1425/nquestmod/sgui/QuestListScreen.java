@@ -62,12 +62,12 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
         }
         List<Quest> filteredQuests = NQuestMod.INSTANCE.questDispatcher.quests.values().stream()
                 .filter(q -> selectedPrimaryTab.getKey().equals(q.category))
-                .sorted(Comparator.comparingInt(q -> {
+                .sorted(Comparator.<Quest>comparingInt(q -> {
                     QuestCategory cat = NQuestMod.INSTANCE.questCategories.get(q.category);
                     if (cat == null || cat.tiers == null) return Integer.MAX_VALUE;
                     QuestTier tier = cat.tiers.get(q.tier);
                     return tier != null ? tier.order : Integer.MAX_VALUE;
-                }))
+                }).thenComparing(q -> q.id))
                 .toList();
 
         return CompletableFuture.completedFuture(Pair.of(

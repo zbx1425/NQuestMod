@@ -81,16 +81,19 @@ public class CurrentQuestScreen extends ItemListGui<Step> {
     @Override
     protected GuiElementBuilder createElementForItem(Step item, int index) {
         Item icon;
-        if (progress.currentStepIndex > index) {
+        int pageSize = (rowContentEnds - rowContentStarts + 1) * 9;
+        int offset = page * pageSize;
+        int realIndex = offset + index;
+        if (progress.currentStepIndex > realIndex) {
             icon = Items.GREEN_TERRACOTTA;
-        } else if (progress.currentStepIndex == index) {
+        } else if (progress.currentStepIndex == realIndex) {
             icon = Items.YELLOW_CONCRETE;
         } else {
             icon = Items.GRAY_CONCRETE;
         }
         return new GuiElementBuilder(icon)
                 .setName(item.criteria.getDisplayRepr())
-                .setCount(index + 1);
+                .setCount(realIndex + 1);
     }
 
     private List<Component> formatDescription(String description) {
