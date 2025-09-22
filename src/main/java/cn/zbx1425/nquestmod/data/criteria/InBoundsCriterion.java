@@ -1,7 +1,7 @@
 package cn.zbx1425.nquestmod.data.criteria;
 
 import net.minecraft.server.level.ServerPlayer;
-import cn.zbx1425.nquestmod.data.persistent.Vec3d;
+import cn.zbx1425.nquestmod.data.Vec3d;
 import net.minecraft.network.chat.Component;
 
 public class InBoundsCriterion implements Criterion {

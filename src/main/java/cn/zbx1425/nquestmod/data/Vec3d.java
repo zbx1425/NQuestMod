@@ -1,4 +1,4 @@
-package cn.zbx1425.nquestmod.data.persistent;
+package cn.zbx1425.nquestmod.data;
 
 public class Vec3d {
     public final double x, y, z;

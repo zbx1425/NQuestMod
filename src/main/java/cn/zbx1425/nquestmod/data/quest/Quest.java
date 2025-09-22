@@ -24,4 +24,17 @@ public class Quest {
             .map(line -> Component.literal(line).withStyle(ChatFormatting.GRAY))
             .collect(Collectors.toList());
     }
+
+    // Some criterion's getDisplayRepr() has async loading (e.g. MTR station names),
+    // we call this method after loading quests to trigger fetching those names.
+    // Maybe there can be some better way to do this?
+    public void preTouchDescriptions() {
+        for (Step step : steps) {
+            if (step.criteria != null) step.criteria.createStatefulInstance().getDisplayRepr();
+            if (step.failureCriteria != null) step.failureCriteria.createStatefulInstance().getDisplayRepr();
+        }
+        if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
+            defaultCriteria.failureCriteria.createStatefulInstance().getDisplayRepr();
+        }
+    }
 }

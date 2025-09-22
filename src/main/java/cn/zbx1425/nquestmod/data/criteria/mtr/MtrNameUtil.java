@@ -32,4 +32,17 @@ public class MtrNameUtil {
         }
         return cleaned.toString();
     }
+
+    public static String getStationDisplayName(String stationNameOrId) {
+        if (stationNameOrId.length() == 16) {
+            try {
+                long id = Long.parseUnsignedLong(stationNameOrId, 16);
+                return processLocalizedName(TscStatus.getStationName(id));
+            } catch (NumberFormatException ignored) {
+                return stationNameOrId;
+            }
+        } else {
+            return stationNameOrId;
+        }
+    }
 }

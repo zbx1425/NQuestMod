@@ -3,6 +3,7 @@ package cn.zbx1425.nquestmod.mixin;
 import cn.zbx1425.nquestmod.interop.TscStatus;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.core.data.Position;
+import org.mtr.core.data.Station;
 import org.mtr.core.simulation.Simulator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,8 +21,18 @@ public class SimulatorMixin {
     void onEndTick(CallbackInfo ci) {
         if (updateResponseNonce == TscStatus.updateRequestNonce) return;
         updateResponseNonce = TscStatus.updateRequestNonce;
-
         Simulator simulator = (Simulator)(Object)this;
+
+        for (var it = TscStatus.STATION_NAME_REQUESTS.iterator(); it.hasNext(); ) {
+            long id = it.nextLong();
+            Station stationOrNull = simulator.stationIdMap.get(id);
+            if (stationOrNull != null) {
+                TscStatus.STATION_NAMES.put(id, stationOrNull.getName());
+                it.remove();
+            }
+        }
+
+        if (!TscStatus.isAnyQuestGoingOn) return;
 
         simulator.clients.forEach(client -> {
             Position clientPosition = TscStatus.CLIENT_POSITIONS.get(client.uuid);
@@ -41,7 +52,7 @@ public class SimulatorMixin {
                 if (routeId == 0) routeId = vehicleExtraData.getNextRouteId();
                 if (routeId == 0) routeId = vehicleExtraData.getPreviousRouteId();
                 TscStatus.CLIENTS.put(vehicleRidingEntity.uuid, new TscStatus.ClientState(
-                        client,  simulator.routeIdMap.get(routeId)));
+                        client, simulator.routeIdMap.get(routeId)));
             }
         }));
     }

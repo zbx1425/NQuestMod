@@ -38,6 +38,7 @@ public class QuestPersistence {
         try (Writer writer = Files.newBufferedWriter(questPath)) {
             GSON.toJson(quest, writer);
         }
+        quest.preTouchDescriptions();
     }
 
     public void removeQuestDefinition(String questId) throws IOException {
@@ -55,6 +56,7 @@ public class QuestPersistence {
             files.filter(path -> path.toString().endsWith(".json")).forEach(path -> {
                 try (Reader reader = Files.newBufferedReader(path)) {
                     Quest quest = GSON.fromJson(reader, Quest.class);
+                    quest.preTouchDescriptions();
                     quests.put(quest.id, quest);
                 } catch (Exception e) {
                     NQuestMod.LOGGER.error("Failed to load quest definition from {}", path, e);

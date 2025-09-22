@@ -15,11 +15,12 @@ import net.minecraft.world.item.Items;
 
 public class MainMenuScreen extends SimpleGui {
 
+    private static final String SOFTWARE_VERSION = FabricLoader.getInstance().getModContainer("nquestmod")
+        .get().getMetadata().getVersion().getFriendlyString().split("\\+")[0];
+
     public MainMenuScreen(ServerPlayer player) {
         super(MenuType.GENERIC_9x3, player, false);
-        setTitle(Component.literal("Nemo's Quest Mod v" +
-            FabricLoader.getInstance().getModContainer("nquestmod")
-                .get().getMetadata().getVersion().getFriendlyString()));
+        setTitle(Component.literal("NQuest v" + SOFTWARE_VERSION + " by Zbx1425"));
 
         PlayerProfile profile = NQuestMod.INSTANCE.questDispatcher.playerProfiles.get(player.getGameProfile().getId());
         if (profile == null) return;

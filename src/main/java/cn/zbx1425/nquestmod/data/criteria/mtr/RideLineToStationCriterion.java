@@ -27,7 +27,8 @@ public class RideLineToStationCriterion implements Criterion {
         return Component.literal("Ride ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal(lineName).withStyle(ChatFormatting.GREEN).withStyle(ChatFormatting.BOLD))
             .append(Component.literal(" to ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(stationName).withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
+            .append(Component.literal(MtrNameUtil.getStationDisplayName(stationName))
+                .withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
     }
 
     @Override

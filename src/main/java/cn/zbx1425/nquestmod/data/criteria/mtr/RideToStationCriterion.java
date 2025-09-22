@@ -23,7 +23,8 @@ public class RideToStationCriterion implements Criterion {
     @Override
     public Component getDisplayRepr() {
         return Component.literal("Ride to ").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(stationName).withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
+            .append(Component.literal(MtrNameUtil.getStationDisplayName(stationName))
+                .withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
     }
 
     @Override

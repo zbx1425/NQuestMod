@@ -1,8 +1,5 @@
 package cn.zbx1425.nquestmod.data.quest;
 
-import cn.zbx1425.nquestmod.data.criteria.Criterion;
-import cn.zbx1425.nquestmod.data.persistent.Vec3d;
-
 import java.util.Map;
 
 public class QuestProgress {
