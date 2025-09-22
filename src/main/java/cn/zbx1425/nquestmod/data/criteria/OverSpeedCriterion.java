@@ -32,7 +32,6 @@ public class OverSpeedCriterion implements Criterion {
         double deltaT = (player.getServer().getTickCount() - lastTick) / 20.0;
         lastPlayerPos = player.position();
         lastTick = player.getServer().getTickCount();
-        NQuestMod.LOGGER.info("Speed: {} m/s", Math.sqrt(distSqr) / deltaT);
         return distSqr / (deltaT * deltaT) > maxSpeedMps * maxSpeedMps;
     }
 

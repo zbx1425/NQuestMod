@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class MtrNameUtil {
 
     public static boolean matches(String criteria, TscStatus.NameIdData target) {
-        if (target.name().equalsIgnoreCase(Utilities.numberToPaddedHexString(target.id()))) return true;
+        if (criteria.equalsIgnoreCase(Utilities.numberToPaddedHexString(target.id()))) return true;
         String targetNameEnglishOnly = processLocalizedName(target.name());
         return targetNameEnglishOnly.toLowerCase(Locale.ROOT).startsWith(criteria.toLowerCase(Locale.ROOT));
     }

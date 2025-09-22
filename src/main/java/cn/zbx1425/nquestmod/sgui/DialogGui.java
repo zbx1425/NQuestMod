@@ -29,7 +29,7 @@ public class DialogGui extends ParentedGui {
                 .setName(Component.literal("Cancel"))
                 .setCallback((index, type, action) -> close())
         );
-        setSlot(9 * 2 + 7, new GuiElementBuilder(Items.GREEN_CONCRETE)
+        setSlot(9 * 2 + 7, new GuiElementBuilder(Items.LIME_CONCRETE)
                 .setName(Component.literal("Confirm"))
                 .setCallback((index, type, action) -> {
                     onConfirm.accept(this);
