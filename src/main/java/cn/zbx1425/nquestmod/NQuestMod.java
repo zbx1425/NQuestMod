@@ -73,26 +73,30 @@ public class NQuestMod implements ModInitializer {
         });
 
         ServerPlayConnectionEvents.JOIN.register((packetListener, packetSender, server) -> {
-            ServerPlayer player = packetListener.getPlayer();
-            try {
-                questDispatcher.playerProfiles.put(player.getGameProfile().getId(),
+            server.execute(() -> {
+                ServerPlayer player = packetListener.getPlayer();
+                try {
+                    questDispatcher.playerProfiles.put(player.getGameProfile().getId(),
                         userDatabase.loadPlayerProfile(player.getGameProfile().getId()));
-                questNotifications.onPlayerJoin(questDispatcher, player.getGameProfile().getId());
-            } catch (SQLException ex) {
-                LOGGER.error("Failed to load player profile for {}", player.getGameProfile().getName(), ex);
-            }
+                    questNotifications.onPlayerJoin(questDispatcher, player.getGameProfile().getId());
+                } catch (SQLException ex) {
+                    LOGGER.error("Failed to load player profile for {}", player.getGameProfile().getName(), ex);
+                }
+            });
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((packetListener, server) -> {
-            ServerPlayer player = packetListener.getPlayer();
-            PlayerProfile profile = questDispatcher.playerProfiles.remove(player.getGameProfile().getId());
-            if (profile != null) {
-                try {
-                    userDatabase.savePlayerProfile(profile);
-                } catch (SQLException ex) {
-                    LOGGER.error("Failed to save player profile for {}", player.getGameProfile().getName(), ex);
+            server.execute(() -> {
+                ServerPlayer player = packetListener.getPlayer();
+                PlayerProfile profile = questDispatcher.playerProfiles.remove(player.getGameProfile().getId());
+                if (profile != null) {
+                    try {
+                        userDatabase.savePlayerProfile(profile);
+                    } catch (SQLException ex) {
+                        LOGGER.error("Failed to save player profile for {}", player.getGameProfile().getName(), ex);
+                    }
                 }
-            }
+            });
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
