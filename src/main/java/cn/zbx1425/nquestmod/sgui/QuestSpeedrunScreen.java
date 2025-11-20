@@ -44,7 +44,7 @@ public class QuestSpeedrunScreen extends TabbedItemListGui<QuestCompletionData, 
                 leaderboardScreen.selectedPrimaryTab = selectedPrimaryTab;
                 leaderboardScreen.init();
             }
-            close();
+            goBack();
             return;
         }
 

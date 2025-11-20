@@ -18,15 +18,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, QuestCategory>, Void> {
 
-    private final Consumer<Quest> callback;
+    private final BiConsumer<Quest, QuestListScreen> callback;
 
-    public QuestListScreen(ServerPlayer player, BaseSlotGui parent, Consumer<Quest> callback) {
+    public QuestListScreen(ServerPlayer player, BaseSlotGui parent, BiConsumer<Quest, QuestListScreen> callback) {
         super(MenuType.GENERIC_9x4, player, parent,
                 NQuestMod.INSTANCE.questCategories.entrySet().stream()
                     .min(Comparator.comparingInt(c -> c.getValue().order))
@@ -93,6 +94,6 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
             builder.addLoreLine(loreLine);
         }
         return builder.setName(Component.literal(item.name))
-                .setCallback((i, t, a) -> this.callback.accept(item));
+                .setCallback((i, t, a) -> this.callback.accept(item, this));
     }
 }

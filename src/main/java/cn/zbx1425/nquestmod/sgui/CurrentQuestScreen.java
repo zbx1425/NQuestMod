@@ -54,7 +54,7 @@ public class CurrentQuestScreen extends ItemListGui<Step> {
                             (gui) -> {
                                 try {
                                     NQuestMod.INSTANCE.questDispatcher.stopQuests(player.getGameProfile().getId());
-                                    gui.shouldJustClose = true;
+                                    gui.shouldCloseOnConfirm = true;
                                 } catch (QuestException e) {
                                     player.sendSystemMessage(e.getDisplayRepr(), false);
                                 }

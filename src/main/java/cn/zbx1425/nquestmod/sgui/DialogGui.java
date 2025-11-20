@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 public class DialogGui extends ParentedGui {
 
-    public boolean shouldJustClose = false;
+    public boolean shouldCloseOnConfirm = false;
 
     public DialogGui(ServerPlayer player, BaseSlotGui parent,
                      Component title,
@@ -27,20 +27,18 @@ public class DialogGui extends ParentedGui {
 
         setSlot(9 * 2 + 5, new GuiElementBuilder(Items.RED_CONCRETE)
                 .setName(Component.literal("Cancel"))
-                .setCallback((index, type, action) -> close())
+                .setCallback((index, type, action) -> goBack())
         );
         setSlot(9 * 2 + 7, new GuiElementBuilder(Items.LIME_CONCRETE)
                 .setName(Component.literal("Confirm"))
                 .setCallback((index, type, action) -> {
                     onConfirm.accept(this);
-                    close();
+                    if (shouldCloseOnConfirm) {
+                        close();
+                    } else {
+                        goBack();
+                    }
                 })
         );
-    }
-
-    @Override
-    public void onClose() {
-        if (shouldJustClose) return;
-        super.onClose();
     }
 }

@@ -64,15 +64,15 @@ public class MainMenuScreen extends SimpleGui {
     }
 
     
-    private void openStartQuestConfirmation(Quest quest) {
-        new DialogGui(player, this,
+    private void openStartQuestConfirmation(Quest quest, QuestListScreen listScreen) {
+        new DialogGui(player, listScreen,
                 Component.literal("Start Quest?"),
                 new GuiElementBuilder(Items.BOOK)
                         .setName(Component.literal(quest.name)),
                 (gui) -> {
                     try {
                         NQuestMod.INSTANCE.questDispatcher.startQuest(player.getGameProfile().getId(), quest.id);
-                        gui.shouldJustClose = true;
+                        gui.shouldCloseOnConfirm = true;
                     } catch (QuestException e) {
                         player.sendSystemMessage(e.getDisplayRepr(), false);
                     }

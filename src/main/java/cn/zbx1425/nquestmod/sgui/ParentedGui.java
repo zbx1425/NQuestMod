@@ -21,16 +21,15 @@ public abstract class ParentedGui extends SimpleGui {
         // Back button
         setSlot((height - 1) * 9, new GuiElementBuilder(Items.ARROW)
             .setName(Component.literal("Back"))
-            .setCallback((index, type, action) -> close())
+            .setCallback((index, type, action) -> goBack())
         );
     }
 
-    @Override
-    public void onClose() {
+    public void goBack() {
         if (parent != null) {
             parent.open();
         } else {
-            super.onClose();
+            close();
         }
     }
 }

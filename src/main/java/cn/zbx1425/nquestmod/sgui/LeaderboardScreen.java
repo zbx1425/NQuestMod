@@ -47,8 +47,8 @@ public class LeaderboardScreen extends TabbedItemListGui<Object, LeaderboardScre
     public void init() {
         if (selectedPrimaryTab == LeaderboardType.SPEEDRUN) {
             selectedPrimaryTab = LeaderboardType.QP;
-            new QuestListScreen(player, parent, (quest) -> {
-                new QuestSpeedrunScreen(player, this, quest, selectedSecondaryTab == TimeRange.MONTHLY).open();
+            new QuestListScreen(player, parent, (quest, listScreen) -> {
+                new QuestSpeedrunScreen(player, listScreen, quest, selectedSecondaryTab == TimeRange.MONTHLY).open();
             }).open();
             return;
         }
