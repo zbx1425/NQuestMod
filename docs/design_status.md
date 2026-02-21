@@ -357,3 +357,29 @@ tryAdvance(... triggerId)
 6. **QuestCompletionDetailScreen 初始化顺序** — `rowContentStarts = 1` 在 `init()` 之后才设置
 7. **所有 GUI 文本为英文硬编码** — 无 i18n 支持
 8. **preTouchDescriptions()** — 用于预加载 MTR 站名的异步解析，是一个权宜之计（代码注释中也提到）
+
+
+---
+
+
+## Quest DRAFT 状态
+
+在 `Quest` 模型上有一个 `status` 枚举字段：
+
+```java
+public enum QuestStatus { DRAFT, PUBLISHED }
+```
+
+- **[Quest.java](src/main/java/cn/zbx1425/nquestmod/data/quest/Quest.java)** — 新增 `QuestStatus status` 字段，默认 `DRAFT`（安全优先：新建的 Quest 默认不对玩家可见）
+- **[QuestDispatcher.java](src/main/java/cn/zbx1425/nquestmod/data/QuestDispatcher.java)** 的 `startQuest()` — 增加检查：若 `quest.status == DRAFT && !isDebugMode(player)`，则抛出 `QuestException`（类型如 `QUEST_NOT_PUBLISHED`）
+- **sgui/QuestListScreen** — 过滤列表，普通玩家只看到 `PUBLISHED` 状态的 Quest。若当前玩家有权限 2+（或处于调试模式），可额外看到 DRAFT Quest 并以特殊样式标注（如灰色斜体名 + "[DRAFT]" 标签）
+- **JSON 序列化** — `status` 字段随 Quest JSON 持久化；旧文件不含 `status` 字段时，Gson 反序列化默认值应为 `PUBLISHED`（向后兼容，已发布 Quest 不会突然消失）
+
+---
+
+## Quest 作者调试模式
+
+引入一个 **per-player 调试标志**，通过命令开关控制。
+- 在 `QuestDispatcher` 中维护一个 `Set<UUID> debugPlayers`（仅内存，不持久化——调试状态不应跨重启保留）
+- 新增 `/nquest debug [player]`（权限等级 2）— 切换调试模式开关
+- 执行后向玩家发送聊天消息确认当前状态
