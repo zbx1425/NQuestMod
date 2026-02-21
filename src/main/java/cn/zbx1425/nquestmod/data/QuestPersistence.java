@@ -79,6 +79,39 @@ public class QuestPersistence {
         }
     }
 
+    public void removeStaleQuests(java.util.Set<String> keepIds) throws IOException {
+        Path questsDir = basePath.resolve("quests");
+        if (!Files.isDirectory(questsDir)) return;
+        try (Stream<Path> files = Files.list(questsDir)) {
+            files.filter(p -> p.toString().endsWith(".json")).forEach(p -> {
+                String filename = p.getFileName().toString();
+                String questId = filename.substring(0, filename.length() - ".json".length());
+                if (!keepIds.contains(questId)) {
+                    try {
+                        Files.delete(p);
+                        NQuestMod.LOGGER.info("Removed stale quest cache: {}", questId);
+                    } catch (IOException e) {
+                        NQuestMod.LOGGER.warn("Failed to delete stale quest cache: {}", p, e);
+                    }
+                }
+            });
+        }
+    }
+
+    public SyncConfig loadSyncConfig() {
+        Path configFile = basePath.resolve("sync_config.json");
+        if (!Files.exists(configFile)) {
+            return new SyncConfig();
+        }
+        try (Reader reader = Files.newBufferedReader(configFile)) {
+            SyncConfig config = NQuestGson.INSTANCE.fromJson(reader, SyncConfig.class);
+            return config != null ? config : new SyncConfig();
+        } catch (Exception e) {
+            NQuestMod.LOGGER.warn("Failed to load sync config, sync disabled", e);
+            return new SyncConfig();
+        }
+    }
+
     public CommandSigner getOrCreateCommandSigner() throws IOException {
         Path signerFile = basePath.resolve("sign_secret.json");
         if (Files.exists(signerFile)) {

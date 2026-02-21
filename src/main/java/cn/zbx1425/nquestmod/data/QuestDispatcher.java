@@ -50,6 +50,13 @@ public class QuestDispatcher {
         return playerProfiles.get(playerUuid);
     }
 
+    public void reloadQuests(Map<String, Quest> newQuests) {
+        for (Quest quest : newQuests.values()) {
+            quest.preTouchDescriptions();
+        }
+        this.quests = newQuests;
+    }
+
     public boolean updatePlayers(Function<UUID, ServerPlayer> playerGetter) {
         boolean isAnyQuestGoingOn = false;
         for (PlayerProfile profile : playerProfiles.values()) {

@@ -79,6 +79,7 @@ public class Commands {
                             Component message = Component.literal("Quest definition accepted with ID: ")
                                 .append(Component.literal(quest.id).withStyle(net.minecraft.ChatFormatting.AQUA));
                             ctx.getSource().sendSuccess(() -> message, false);
+                            warnIfSyncEnabled(ctx.getSource());
                             return 1;
                         })
                     ))
@@ -134,6 +135,7 @@ public class Commands {
                                 throw new SimpleCommandExceptionType(Component.literal("Failed to parse or save categories: " + ex)).create();
                             }
                             ctx.getSource().sendSuccess(() -> Component.literal("Quest categories updated."), false);
+                            warnIfSyncEnabled(ctx.getSource());
                             return 1;
                         })
                     ))
@@ -252,6 +254,14 @@ public class Commands {
             return quest;
         } catch (Exception ex) {
             throw new SimpleCommandExceptionType(Component.literal("Failed to parse or save quest definition: " + ex)).create();
+        }
+    }
+
+    private static void warnIfSyncEnabled(CommandSourceStack source) {
+        if (NQuestMod.INSTANCE.questSyncClient != null && NQuestMod.INSTANCE.questSyncClient.isEnabled()) {
+            source.sendSuccess(() -> Component.literal(
+                    "\u26A0 Warning: Remote sync is enabled. This local change may be overwritten on the next sync cycle.")
+                    .withStyle(net.minecraft.ChatFormatting.YELLOW), false);
         }
     }
 

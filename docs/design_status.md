@@ -1,6 +1,6 @@
 # NQuest 项目现状文档
 
-> 版本 0.4.4 · Fabric 1.20.4 · 最后更新 2026-02-21
+> 版本 0.5.0 · Fabric 1.20.4 · 最后更新 2026-02-21
 
 ---
 
@@ -111,6 +111,7 @@ cn.zbx1425.nquestmod
 ├── data/                   # 核心数据与逻辑
 │   ├── QuestDispatcher.java      # 任务调度核心：开始/停止/推进/失败判定
 │   ├── QuestPersistence.java     # JSON 持久化（任务定义、分类、签名密钥）
+│   ├── NQuestGson.java           # 统一 Gson 配置（注册 CriteriaRegistry 工厂）
 │   ├── QuestException.java       # 错误类型枚举 + Brigadier 异常转换
 │   ├── IQuestCallbacks.java      # 任务生命周期回调接口
 │   ├── RuntimeTypeAdapterFactory  # Gson 多态序列化
@@ -118,15 +119,17 @@ cn.zbx1425.nquestmod
 │   │
 │   ├── quest/              # 任务数据模型
 │   │   ├── Quest.java            # 任务定义：id, name, description, category, tier, questPoints, steps, defaultCriteria
-│   │   ├── Step.java             # 步骤 = criteria + failureCriteria（可选）
-│   │   ├── QuestProgress.java    # 玩家正在进行的任务运行时状态
+│   │   ├── Step.java             # 步骤 = criteria + failureCriteria（纯数据容器 + evaluate/expand 辅助方法）
+│   │   ├── StepState.java        # 步骤状态容器：Map<String, JsonObject>，按树路径寻址
+│   │   ├── QuestProgress.java    # 玩家正在进行的任务运行时状态（含 questSnapshot + StepState）
 │   │   ├── PlayerProfile.java    # 玩家档案：UUID, 总QP, 总完成数, activeQuests
 │   │   ├── QuestCategory.java    # 分类：name, description, icon, order, tiers
 │   │   ├── QuestTier.java        # 分级：name, icon, order
 │   │   └── QuestCompletionData   # 完成记录快照
 │   │
 │   ├── criteria/           # 条件系统
-│   │   ├── Criterion.java        # 接口：isFulfilled / getDisplayRepr / createStatefulInstance / propagateManualTrigger
+│   │   ├── Criterion.java        # 接口：evaluate(player, ctx) / getDisplayRepr / expand / propagateManualTrigger(id, ctx)
+│   │   ├── CriterionContext.java # 求值上下文 record：封装 StepState + 当前树路径，child() 派生子节点
 │   │   ├── CriteriaRegistry.java # 注册所有 Criterion 子类到 Gson RuntimeTypeAdapterFactory
 │   │   ├── 逻辑组合: AndCriterion, OrCriterion, NotCriterion
 │   │   ├── 状态保持: LatchingCriterion（一旦满足不可逆）, RisingEdgeAndConditionCriterion（上升沿+条件）
@@ -172,19 +175,24 @@ cn.zbx1425.nquestmod
     ▼
 QuestDispatcher.updatePlayers()
     │  遍历 playerProfiles → 每个有 activeQuests 的玩家
+    │  使用 progress.questSnapshot（开始任务时冻结的原始未展开 Quest 定义）
     ▼
-tryAdvance(profile, quest, progress, player, triggerId=null)
+tryAdvance(profile, progress, player, triggerId=null)
     │
-    ├─ 1. 如果 currentStepStateful == null，创建当前步骤的有状态实例
-    │     （Criterion.createStatefulInstance()，深拷贝用于保持 Latching 等状态）
+    ├─ 1. 惰性展开：如果 expandedCurrentStep == null（首次 / 断线重连后 / 步骤推进后），
+    │     从 questSnapshot.steps[currentStepIndex].expand() 展开语法糖
+    │     缓存到 transient expandedCurrentStep / expandedDefaultCriteria
     │
-    ├─ 2. 检查失败条件 → isFailedAndReason()
-    │     （优先检查步骤级 failureCriteria，否则检查任务级 defaultCriteria.failureCriteria）
+    ├─ 2. 构建 CriterionContext（state=StepState, path=""），将状态与定义解耦
+    │
+    ├─ 3. 检查失败条件 → step.evaluateFailure(player, failureCtx, defaultCriteria, defaultFailCtx)
     │     → 若失败：移除活跃任务，回调 onQuestFailed
     │
-    └─ 3. 检查完成条件 → isFulfilled(player)
+    └─ 4. 检查完成条件 → step.evaluate(player, criteriaCtx)
           → 若满足：advanceQuestStep()
               ├─ currentStepIndex++
+              ├─ 重置 StepState（criteriaState / failureCriteriaState / defaultFailureCriteriaState）
+              ├─ 清除 expandedCurrentStep 缓存（下步重新展开）
               ├─ 回调 onStepCompleted
               ├─ 若所有步骤完成 → 生成 QuestCompletionData，更新 profile 统计，
               │                    回调 onQuestCompleted，写入 SQLite
@@ -205,7 +213,7 @@ MTR Simulator.tick() 结尾 (SimulatorMixin):
         ├─ 对每个 client：找出玩家所在的所有 Station area → CLIENTS[uuid]
         └─ 对每个 siding 上的乘客：附加其所乘线路信息 → CLIENTS[uuid]
 
-MTR Criterion 在 isFulfilled() 中读取:
+MTR Criterion 在 evaluate(player, ctx) 中读取:
     TscStatus.getClientState(player)
     → 获取 stations: Collection<NameIdData>, line: NameIdData
 ```
@@ -220,10 +228,10 @@ QuestDispatcher.triggerManualCriterion(uuid, triggerId, player)
     │  遍历该玩家的 activeQuests
     ▼
 tryAdvance(... triggerId)
-    ├─ propagateManualTrigger(triggerId)
-    │     递归传播到所有嵌套 Criterion
-    │     ManualTriggerCriterion: 如果 id 匹配则设为 isTriggered=true
-    └─ 然后正常走 isFulfilled / isFailedAndReason 检查
+    ├─ propagateManualTrigger(triggerId, ctx)
+    │     递归传播到所有嵌套 Criterion（通过 CriterionContext 写入 StepState）
+    │     ManualTriggerCriterion: 如果 id 匹配则 ctx.setBoolean("triggered", true)
+    └─ 然后正常走 evaluate / evaluateFailure 检查
 
 兼容路径（ScoreboardCommandMixin）:
     setScore 目标为 "mtrq_quest_complete" 时
@@ -234,11 +242,13 @@ tryAdvance(... triggerId)
 
 | 类型 | 存储位置 | 格式 | 时机 |
 |------|---------|------|------|
-| 任务定义 | `<world>/nquest/quests/<id>.json` | JSON (Gson + RuntimeTypeAdapterFactory) | set 命令时立即保存；启动时加载全部 |
+| 任务定义 | `<world>/nquest/quests/<id>.json` | JSON (NQuestGson + RuntimeTypeAdapterFactory) | set 命令时立即保存；启动时加载全部 |
 | 分类定义 | `<world>/nquest/categories.json` | JSON | set 命令时保存；服务器关闭时保存；启动时加载 |
 | 签名密钥 | `<world>/nquest/command_signer.json` | JSON（UUID） | 首次启动自动生成 |
-| 玩家档案 | `<world>/nquest/user.db` (SQLite) | 表 `player_profiles` | 玩家退出时保存；加入时加载 |
+| 玩家档案 | `<world>/nquest/user.db` (SQLite) | 表 `player_profiles`（json 列含 QuestProgress.questSnapshot + StepState） | 玩家退出时保存；加入时加载 |
 | 完成记录 | 同上 | 表 `quest_completions`（含 stepDurations JSON） | 任务完成时插入 |
+
+所有 Gson 序列化/反序列化统一使用 `NQuestGson.INSTANCE`（注册了 `CriteriaRegistry` 工厂），确保 `QuestProgress.questSnapshot` 中的多态 Criterion 树可正确序列化。
 
 ### 3.6 命令体系
 
@@ -259,31 +269,47 @@ tryAdvance(... triggerId)
 
 ### 3.7 条件系统详解
 
-条件系统是任务的核心，采用**组合模式 + 多态序列化**。
+条件系统是任务的核心，采用**组合模式 + 多态序列化 + 定义/状态分离**。
+
+**架构：定义层与状态层完全分离**
+
+- **Criterion**：纯不可变定义，从 JSON 反序列化，描述"检查什么"。Criterion 对象上不存储任何可变状态。
+- **StepState**：`Map<String, JsonObject>` 状态容器，每个 Criterion 节点通过其**树路径**（如 `""`, `"0"`, `"0/b"`, `"1/t"`）读写状态。可通过 Gson 完整序列化/反序列化。
+- **CriterionContext**：轻量 record，封装 StepState + 当前路径，`child()` 方法按树结构层层派生。Criterion 的 `evaluate()` 和 `propagateManualTrigger()` 通过它访问状态。
 
 **接口 `Criterion`：**
-- `isFulfilled(ServerPlayer)` → 是否满足
+- `evaluate(ServerPlayer, CriterionContext)` → 是否满足（替代原 `isFulfilled`）
 - `getDisplayRepr()` → 用于 GUI/聊天的显示文本
-- `createStatefulInstance()` → 深拷贝，用于 Latching/RisingEdge 等有状态条件
-- `propagateManualTrigger(String)` → 传播手动触发信号
+- `expand()` → 展开语法糖（如 RideLineToStation → Descriptor(RisingEdge(VisitStation, RideLine))），默认返回自身
+- `propagateManualTrigger(String, CriterionContext)` → 传播手动触发信号
+
+**已移除的方法：**
+- `createStatefulInstance()` — 不再需要，状态在外部 StepState 中
+- `isFulfilled(ServerPlayer)` — 替换为 `evaluate(ServerPlayer, CriterionContext)`
+
+**树路径寻址规则：**
+- 根节点：`""`
+- And/Or 的第 i 个子节点：`"0"`, `"1"`, `"2"`, ...
+- Latching/Not/Descriptor 的 base：`"b"`
+- RisingEdge 的 trigger：`"t"`，condition：`"c"`
 
 **已实现的条件类型：**
 
-| 类型 | 说明 | 有状态 |
+| 类型 | 说明 | 使用 StepState |
 |------|------|--------|
 | `ConstantCriterion` | 常量 true/false | 否 |
-| `ManualTriggerCriterion` | 匹配 triggerId 后设为 true | 是 |
+| `ManualTriggerCriterion` | 匹配 triggerId 后 ctx.setBoolean("triggered", true) | 是 |
 | `InBoundsCriterion` | 玩家在 AABB 内 | 否 |
-| `OverSpeedCriterion` | 玩家速度超过阈值（曼哈顿距离/tick） | 是 |
-| `TeleportDetectCriterion` | 玩家发生传送 | 是 |
+| `OverSpeedCriterion` | 玩家速度超过阈值（通过 ctx 保存 lastX/Y/Z 和 lastTick） | 是 |
+| `TeleportDetectCriterion` | 玩家发生传送 | 否（读 GenerationStatus） |
 | `VisitStationCriterion` | 玩家在匹配的 MTR 车站区域内 | 否 |
 | `RideLineCriterion` | 玩家正在乘坐匹配的 MTR 线路 | 否 |
-| `RideToStationCriterion` | 乘车 + 到站（RisingEdge 包装） | 是 |
-| `RideLineToStationCriterion` | 乘指定线路 + 到站 | 是 |
+| `RideToStationCriterion` | **语法糖**：expand() → Descriptor(RisingEdge(VisitStation, RideLine(""))) | — |
+| `RideLineToStationCriterion` | **语法糖**：expand() → Descriptor(RisingEdge(VisitStation, RideLine)) | — |
 | `AndCriterion` | 全部子条件满足 | 取决于子条件 |
 | `OrCriterion` | 任一子条件满足 | 取决于子条件 |
 | `NotCriterion` | 取反 | 取决于子条件 |
-| `LatchingCriterion` | 一旦满足则锁定 | 是 |
+| `LatchingCriterion` | 一旦满足则锁定（ctx.setBoolean("fulfilled", true)） | 是 |
 | `RisingEdgeAndConditionCriterion` | trigger 从 false→true 的瞬间 condition 也为 true | 是 |
 | `Descriptor` | 为条件添加自定义描述文本 | 取决于子条件 |
 
@@ -297,9 +323,19 @@ tryAdvance(... triggerId)
 - `defaultCriteria` (Step, 可选) — 全局失败条件，适用于所有步骤
 - `steps` (List<Step>) — 步骤序列，按顺序完成
 
-**Step 结构：**
+**Step 结构：**（纯数据容器，不再 implements Criterion）
 - `criteria` (Criterion) — 完成条件
 - `failureCriteria` (Criterion, 可选) — 步骤级失败条件（优先于 defaultCriteria 的 failureCriteria）
+- `evaluate(player, ctx)` — 求值辅助方法
+- `evaluateFailure(player, failCtx, defaultCriteria, defaultFailCtx)` — 失败判定辅助方法
+- `expand()` — 递归展开所有子条件的语法糖，返回新 Step
+
+**QuestProgress 结构：**
+- `questId` — 任务 ID
+- `questSnapshot` (Quest) — 开始任务时冻结的**原始未展开** Quest 定义
+- `currentStepIndex` — 当前步骤索引
+- `criteriaState`, `failureCriteriaState`, `defaultFailureCriteriaState` (StepState) — 当前步骤的可变状态
+- `expandedCurrentStep`, `expandedDefaultCriteria` (transient) — 运行时从 questSnapshot 展开的缓存
 
 **限制：** 当前一个玩家同一时间只能进行一个任务（`QUEST_ONLY_ONE_AT_A_TIME`）。
 
@@ -343,10 +379,13 @@ tryAdvance(... triggerId)
 
 ### 设计亮点
 1. **条件系统高度可组合** — 通过 And/Or/Not/Latching/RisingEdge 等逻辑条件的嵌套组合，能表达复杂的游戏逻辑
-2. **有状态条件与深拷贝** — `createStatefulInstance()` 机制让同一任务定义可被多个玩家同时使用而互不干扰
-3. **解耦设计** — 核心逻辑（`QuestDispatcher`）与 Minecraft 特定逻辑（通知、GUI）分离，通过 `IQuestCallbacks` 接口连接
-4. **MTR 集成非侵入** — 通过 Mixin + 共享状态（`TscStatus`）实现，不修改 MTR 代码
-5. **签名保护** — 任务/分类的远程写入需要 HMAC-MD5 签名，防止滥用
+2. **定义/状态完全分离** — Criterion 为纯不可变定义，运行时状态存储在外部 StepState 容器中（通过 CriterionContext 按树路径寻址），支持断线重连后无缝继续
+3. **任务快照机制** — 玩家开始任务时冻结 Quest 定义副本（questSnapshot），后续修改不影响进行中的任务
+4. **语法糖展开** — RideLineToStation 等复合条件在运行时惰性展开为基础条件树，JSON 层保持简洁的高层定义
+5. **解耦设计** — 核心逻辑（`QuestDispatcher`）与 Minecraft 特定逻辑（通知、GUI）分离，通过 `IQuestCallbacks` 接口连接
+6. **MTR 集成非侵入** — 通过 Mixin + 共享状态（`TscStatus`）实现，不修改 MTR 代码
+7. **签名保护** — 任务/分类的远程写入需要 HMAC-MD5 签名，防止滥用
+8. **统一 Gson 配置** — `NQuestGson` 统一注册 CriteriaRegistry 工厂，QuestPersistence 和 QuestUserDatabase 共享同一 Gson 实例
 
 ### 待关注事项
 1. **JSON Schema 过时** — `docs/json_schema.txt` 未反映代码中的全部条件类型和字段，需要更新
@@ -356,7 +395,8 @@ tryAdvance(... triggerId)
 5. **错误处理** — `addQuestCompletion` 的 SQLException 被包装为 RuntimeException
 6. **QuestCompletionDetailScreen 初始化顺序** — `rowContentStarts = 1` 在 `init()` 之后才设置
 7. **所有 GUI 文本为英文硬编码** — 无 i18n 支持
-8. **preTouchDescriptions()** — 用于预加载 MTR 站名的异步解析，是一个权宜之计（代码注释中也提到）
+8. **preTouchDescriptions()** — 通过临时 expand() 预加载 MTR 站名的异步解析
+9. **questSnapshot 存储开销** — PlayerProfile JSON 中现在包含完整 Quest 定义副本；活跃任务数较少（当前限制为 1）所以影响可控
 
 
 ---
@@ -383,3 +423,57 @@ public enum QuestStatus { DRAFT, PUBLISHED }
 - 在 `QuestDispatcher` 中维护一个 `Set<UUID> debugPlayers`（仅内存，不持久化——调试状态不应跨重启保留）
 - 新增 `/nquest debug [player]`（权限等级 2）— 切换调试模式开关
 - 执行后向玩家发送聊天消息确认当前状态
+
+---
+
+## Criterion 定义/状态分离重构 (v0.5.0)
+
+将 Criterion 从"定义+状态一体"改为"纯定义 + 外部状态容器"模式，支持断线重连后无缝继续任务。
+
+### 核心变更
+
+1. **新增类：**
+   - `StepState` — `Map<String, JsonObject>` 状态容器，按树路径寻址
+   - `CriterionContext` — record(StepState, path)，求值时层层派生 `child()`
+   - `NQuestGson` — 统一 Gson 配置，注册 CriteriaRegistry 工厂
+
+2. **Criterion 接口变更：**
+   - `isFulfilled(ServerPlayer)` → `evaluate(ServerPlayer, CriterionContext)`
+   - `propagateManualTrigger(String)` → `propagateManualTrigger(String, CriterionContext)`
+   - 新增 `default Criterion expand()` — 展开语法糖
+   - 移除 `createStatefulInstance()` — 不再需要深拷贝
+
+3. **有状态 Criterion 重构：**
+   - 移除所有 `transient` 状态字段和拷贝构造函数
+   - 状态通过 `CriterionContext` 读写到外部 `StepState`
+
+4. **语法糖 Criterion：**
+   - `RideLineToStationCriterion` / `RideToStationCriterion` 的 `evaluate()` 抛 UnsupportedOperationException
+   - 核心逻辑移至 `expand()` 返回展开后的 Criterion 树
+
+5. **Step 重构：**
+   - 移除 `implements Criterion`，改为纯数据容器 + `evaluate()`/`evaluateFailure()`/`expand()` 辅助方法
+
+6. **QuestProgress 重构：**
+   - 新增 `questSnapshot`（原始未展开 Quest 定义，开始任务时冻结）
+   - 新增 `criteriaState` / `failureCriteriaState` / `defaultFailureCriteriaState`（StepState）
+   - 新增 `transient expandedCurrentStep` / `expandedDefaultCriteria`（运行时缓存）
+   - 移除旧的 `transient currentStepStateful` / `defaultCriteriaStateful`
+
+7. **QuestDispatcher 重构：**
+   - `startQuest()` 冻结 questSnapshot 和初始化 StepState
+   - `tryAdvance()` 惰性展开 + CriterionContext 求值
+   - `advanceQuestStep()` 步骤完成时重置 StepState 并清除展开缓存
+   - `updatePlayers()` / `triggerManualCriterion()` 使用 `progress.questSnapshot` 而非全局 `quests` map
+
+8. **持久化适配：**
+   - `QuestPersistence` 和 `QuestUserDatabase` 统一使用 `NQuestGson.INSTANCE`
+   - PlayerProfile JSON 中的 QuestProgress 可完整序列化（questSnapshot + StepState），断线重连后恢复
+
+### 断线重连流程
+
+```
+玩家断线 → Gson 序列化 QuestProgress（questSnapshot 原始形式 + StepState 路径状态）→ SQLite
+玩家重连 → 反序列化 → expandedCurrentStep = null（transient）
+下一秒 tryAdvance → expand() 重建展开树 → StepState 中的路径仍有效 → 无缝继续
+```

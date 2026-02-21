@@ -2,6 +2,8 @@ package cn.zbx1425.nquestmod;
 
 import cn.zbx1425.nquestmod.data.QuestDispatcher;
 import cn.zbx1425.nquestmod.data.QuestPersistence;
+import cn.zbx1425.nquestmod.data.QuestSyncClient;
+import cn.zbx1425.nquestmod.data.SyncConfig;
 import cn.zbx1425.nquestmod.data.quest.QuestCategory;
 import cn.zbx1425.nquestmod.data.ranking.QuestUserDatabase;
 import cn.zbx1425.nquestmod.interop.GenerationStatus;
@@ -38,6 +40,7 @@ public class NQuestMod implements ModInitializer {
     public Map<String, QuestCategory> questCategories = new HashMap<>();
 
     public CommandSigner commandSigner;
+    public QuestSyncClient questSyncClient;
 
     @Override
     public void onInitialize() {
@@ -57,11 +60,20 @@ public class NQuestMod implements ModInitializer {
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
 
                 commandSigner = questStorage.getOrCreateCommandSigner();
+
+                SyncConfig syncConfig = questStorage.loadSyncConfig();
+                questSyncClient = new QuestSyncClient(syncConfig, questStorage, server);
+                if (questSyncClient.isEnabled()) {
+                    LOGGER.info("Quest remote sync enabled: {}", syncConfig.backendUrl);
+                }
             } catch (IOException | SQLException ex) {
                 LOGGER.error("Failed to initialize NQuest", ex);
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            if (questSyncClient != null) {
+                questSyncClient.shutdown();
+            }
             if (userDatabase != null) {
                 userDatabase.close();
             }
@@ -109,6 +121,9 @@ public class NQuestMod implements ModInitializer {
             assert questDispatcher != null;
             if (server.getTickCount() % 20 == 5) {
                 TscStatus.requestUpdate(server);
+            }
+            if (server.getTickCount() % 20 == 10 && questSyncClient != null) {
+                questSyncClient.tick(server.getTickCount());
             }
             if (server.getTickCount() % 20 != 15) return; // Once 1 second
             TscStatus.isAnyQuestGoingOn = questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
