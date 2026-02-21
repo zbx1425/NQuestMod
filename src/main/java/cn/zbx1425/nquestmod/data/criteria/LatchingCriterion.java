@@ -6,22 +6,16 @@ import net.minecraft.server.level.ServerPlayer;
 public class LatchingCriterion implements Criterion {
 
     protected Criterion base;
-    protected transient boolean onceFulfilled = false;
 
     public LatchingCriterion(Criterion base) {
         this.base = base;
     }
 
-    public LatchingCriterion(LatchingCriterion singleton) {
-        this.base = singleton.base.createStatefulInstance();
-        this.onceFulfilled = false;
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        if (onceFulfilled) return true;
-        if (base.isFulfilled(player)) {
-            onceFulfilled = true;
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        if (ctx.getBoolean("fulfilled", false)) return true;
+        if (base.evaluate(player, ctx.child("b"))) {
+            ctx.setBoolean("fulfilled", true);
             return true;
         }
         return false;
@@ -33,12 +27,12 @@ public class LatchingCriterion implements Criterion {
     }
 
     @Override
-    public Criterion createStatefulInstance() {
-        return new LatchingCriterion(this);
+    public void propagateManualTrigger(String triggerId, CriterionContext ctx) {
+        base.propagateManualTrigger(triggerId, ctx.child("b"));
     }
 
     @Override
-    public void propagateManualTrigger(String triggerId) {
-        base.propagateManualTrigger(triggerId);
+    public Criterion expand() {
+        return new LatchingCriterion(base.expand());
     }
 }

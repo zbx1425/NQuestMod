@@ -1,60 +1,55 @@
 package cn.zbx1425.nquestmod.data.quest;
 
 import cn.zbx1425.nquestmod.data.criteria.Criterion;
+import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Optional;
 
-public class Step implements Criterion {
+public class Step {
 
     public Criterion criteria;
-    public Criterion failureCriteria; // Optional
+    public Criterion failureCriteria;
 
     public Step(Criterion criteria, Criterion failureCriteria) {
         this.criteria = criteria;
         this.failureCriteria = failureCriteria;
     }
 
-    @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        return criteria != null && criteria.isFulfilled(player);
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        return criteria != null && criteria.evaluate(player, ctx);
     }
 
-    @Override
+    public Optional<Component> evaluateFailure(
+            ServerPlayer player, CriterionContext failCtx,
+            Step defaultCriteria, CriterionContext defaultFailCtx) {
+        if (failureCriteria != null) {
+            if (failureCriteria.evaluate(player, failCtx)) {
+                return Optional.of(failureCriteria.getDisplayRepr());
+            }
+            return Optional.empty();
+        }
+        if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
+            if (defaultCriteria.failureCriteria.evaluate(player, defaultFailCtx)) {
+                return Optional.of(defaultCriteria.failureCriteria.getDisplayRepr());
+            }
+        }
+        return Optional.empty();
+    }
+
     public Component getDisplayRepr() {
         return criteria != null ? criteria.getDisplayRepr() : Component.literal("Impossible Step");
     }
 
-    @Override
-    public Step createStatefulInstance() {
+    public void propagateManualTrigger(String triggerId, CriterionContext criteriaCtx, CriterionContext failureCtx) {
+        if (criteria != null) criteria.propagateManualTrigger(triggerId, criteriaCtx);
+        if (failureCriteria != null) failureCriteria.propagateManualTrigger(triggerId, failureCtx);
+    }
+
+    public Step expand() {
         return new Step(
-            criteria != null ? criteria.createStatefulInstance() : null,
-            failureCriteria != null ? failureCriteria.createStatefulInstance() : null
-        );
-    }
-
-    @Override
-    public void propagateManualTrigger(String triggerId) {
-        if (criteria != null) criteria.propagateManualTrigger(triggerId);
-        if (failureCriteria != null) failureCriteria.propagateManualTrigger(triggerId);
-    }
-
-    public Optional<Component> isFailedAndReason(Step defaultCriteria, ServerPlayer player) {
-        if (failureCriteria != null) {
-            if (failureCriteria.isFulfilled(player)) {
-                return Optional.of(failureCriteria.getDisplayRepr());
-            } else {
-                return Optional.empty();
-            }
-        } else if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
-            if (defaultCriteria.failureCriteria.isFulfilled(player)) {
-                return Optional.of(defaultCriteria.failureCriteria.getDisplayRepr());
-            } else {
-                return Optional.empty();
-            }
-        } else {
-            return Optional.empty();
-        }
+            criteria != null ? criteria.expand() : null,
+            failureCriteria != null ? failureCriteria.expand() : null);
     }
 }

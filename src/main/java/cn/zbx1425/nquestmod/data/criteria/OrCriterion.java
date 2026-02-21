@@ -6,6 +6,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OrCriterion implements Criterion {
 
@@ -15,14 +16,10 @@ public class OrCriterion implements Criterion {
         this.criteria = criteria;
     }
 
-    public OrCriterion(OrCriterion singleton) {
-        this.criteria = singleton.criteria.stream().map(Criterion::createStatefulInstance).toList();
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        for (Criterion criterion : criteria) {
-            if (criterion.isFulfilled(player)) {
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        for (int i = 0; i < criteria.size(); i++) {
+            if (criteria.get(i).evaluate(player, ctx.child(i))) {
                 return true;
             }
         }
@@ -44,14 +41,15 @@ public class OrCriterion implements Criterion {
     }
 
     @Override
-    public OrCriterion createStatefulInstance() {
-        return new OrCriterion(this);
+    public void propagateManualTrigger(String triggerId, CriterionContext ctx) {
+        for (int i = 0; i < criteria.size(); i++) {
+            criteria.get(i).propagateManualTrigger(triggerId, ctx.child(i));
+        }
     }
 
     @Override
-    public void propagateManualTrigger(String triggerId) {
-        for (Criterion criterion : criteria) {
-            criterion.propagateManualTrigger(triggerId);
-        }
+    public Criterion expand() {
+        return new OrCriterion(
+            criteria.stream().map(Criterion::expand).collect(Collectors.toList()));
     }
 }

@@ -150,7 +150,7 @@ public class QuestNotifications implements IQuestCallbacks {
 
         boolean debug = questEngine.isDebugMode(playerUuid);
         return profile.activeQuests.values().stream().findFirst().map(progress -> {
-            Quest quest = questEngine.quests.get(progress.questId);
+            Quest quest = progress.questSnapshot;
             if (quest == null || progress.currentStepIndex >= quest.steps.size()) {
                 return null;
             }

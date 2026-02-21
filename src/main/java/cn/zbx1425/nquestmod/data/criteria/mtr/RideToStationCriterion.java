@@ -1,6 +1,7 @@
 package cn.zbx1425.nquestmod.data.criteria.mtr;
 
 import cn.zbx1425.nquestmod.data.criteria.Criterion;
+import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
 import cn.zbx1425.nquestmod.data.criteria.Descriptor;
 import cn.zbx1425.nquestmod.data.criteria.RisingEdgeAndConditionCriterion;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,8 +17,8 @@ public class RideToStationCriterion implements Criterion {
     }
 
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        throw new UnsupportedOperationException("Use stateful instance");
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        throw new UnsupportedOperationException("Must be expanded before evaluation");
     }
 
     @Override
@@ -28,7 +29,7 @@ public class RideToStationCriterion implements Criterion {
     }
 
     @Override
-    public Criterion createStatefulInstance() {
+    public Criterion expand() {
         return new Descriptor(
             new RisingEdgeAndConditionCriterion(new VisitStationCriterion(stationName), new RideLineCriterion("")),
             getDisplayRepr()

@@ -4,8 +4,8 @@ import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
+import cn.zbx1425.nquestmod.data.NQuestGson;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -20,7 +20,7 @@ import java.util.*;
 public class QuestUserDatabase {
 
     private Connection connection;
-    private final Gson GSON = new GsonBuilder().create();
+    private final Gson GSON = NQuestGson.INSTANCE;
 
     public QuestUserDatabase(Path dbPath) throws SQLException {
         SQLiteConfig config = new SQLiteConfig();

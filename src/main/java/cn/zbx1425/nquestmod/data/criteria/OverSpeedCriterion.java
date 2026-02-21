@@ -1,47 +1,42 @@
 package cn.zbx1425.nquestmod.data.criteria;
 
-import cn.zbx1425.nquestmod.NQuestMod;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.phys.Vec3;
 
 public class OverSpeedCriterion implements Criterion {
 
     public double maxSpeedMps;
 
-    private transient Vec3 lastPlayerPos = null;
-    private transient int lastTick;
-
     public OverSpeedCriterion(double maxSpeedMps) {
         this.maxSpeedMps = maxSpeedMps;
     }
 
-    public OverSpeedCriterion(OverSpeedCriterion singleton) {
-        this.maxSpeedMps = singleton.maxSpeedMps;
-        this.lastPlayerPos = null;
-        this.lastTick = 0;
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        if (lastPlayerPos == null) {
-            lastPlayerPos = player.position();
-            lastTick = player.getServer().getTickCount();
-        }
-        double distSqr = lastPlayerPos.distanceToSqr(player.position());
-        double deltaT = (player.getServer().getTickCount() - lastTick) / 20.0;
-        lastPlayerPos = player.position();
-        lastTick = player.getServer().getTickCount();
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        double lastX = ctx.getDouble("lastX", Double.NaN);
+        double lastY = ctx.getDouble("lastY", Double.NaN);
+        double lastZ = ctx.getDouble("lastZ", Double.NaN);
+        int lastTick = ctx.getInt("lastTick", 0);
+        int currentTick = player.getServer().getTickCount();
+
+        ctx.setDouble("lastX", player.getX());
+        ctx.setDouble("lastY", player.getY());
+        ctx.setDouble("lastZ", player.getZ());
+        ctx.setInt("lastTick", currentTick);
+
+        if (Double.isNaN(lastX)) return false;
+
+        double dx = player.getX() - lastX;
+        double dy = player.getY() - lastY;
+        double dz = player.getZ() - lastZ;
+        double distSqr = dx * dx + dy * dy + dz * dz;
+        double deltaT = (currentTick - lastTick) / 20.0;
+        if (deltaT <= 0) return false;
         return distSqr / (deltaT * deltaT) > maxSpeedMps * maxSpeedMps;
     }
 
     @Override
     public Component getDisplayRepr() {
         return Component.literal("Move faster than " + String.format("%.1f", maxSpeedMps) + " m/s");
-    }
-
-    @Override
-    public Criterion createStatefulInstance() {
-        return new OverSpeedCriterion(this);
     }
 }

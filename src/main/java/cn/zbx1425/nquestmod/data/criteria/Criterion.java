@@ -5,15 +5,15 @@ import net.minecraft.server.level.ServerPlayer;
 
 public interface Criterion {
 
-    boolean isFulfilled(ServerPlayer player);
+    boolean evaluate(ServerPlayer player, CriterionContext ctx);
 
     Component getDisplayRepr();
 
-    default Criterion createStatefulInstance() {
-        return this; // Default to stateless
+    default void propagateManualTrigger(String triggerId, CriterionContext ctx) {
+
     }
 
-    default void propagateManualTrigger(String triggerId) {
-
+    default Criterion expand() {
+        return this;
     }
 }

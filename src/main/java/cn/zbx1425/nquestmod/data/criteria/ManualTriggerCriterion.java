@@ -7,22 +7,15 @@ public class ManualTriggerCriterion implements Criterion {
 
     public String id;
     public String description;
-    protected transient boolean isTriggered = false;
 
     public ManualTriggerCriterion(String id, String description) {
         this.id = id;
         this.description = description;
     }
 
-    public ManualTriggerCriterion(ManualTriggerCriterion singleton) {
-        this.id = singleton.id;
-        this.description = singleton.description;
-        this.isTriggered = false;
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        return isTriggered;
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        return ctx.getBoolean("triggered", false);
     }
 
     @Override
@@ -31,14 +24,9 @@ public class ManualTriggerCriterion implements Criterion {
     }
 
     @Override
-    public Criterion createStatefulInstance() {
-        return new ManualTriggerCriterion(this);
-    }
-
-    @Override
-    public void propagateManualTrigger(String triggerId) {
+    public void propagateManualTrigger(String triggerId, CriterionContext ctx) {
         if (this.id.equals(triggerId)) {
-            isTriggered = true;
+            ctx.setBoolean("triggered", true);
         }
     }
 }

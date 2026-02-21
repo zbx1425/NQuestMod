@@ -37,11 +37,13 @@ public class Quest {
     // Maybe there can be some better way to do this?
     public void preTouchDescriptions() {
         for (Step step : steps) {
-            if (step.criteria != null) step.criteria.createStatefulInstance().getDisplayRepr();
-            if (step.failureCriteria != null) step.failureCriteria.createStatefulInstance().getDisplayRepr();
+            Step expanded = step.expand();
+            if (expanded.criteria != null) expanded.criteria.getDisplayRepr();
+            if (expanded.failureCriteria != null) expanded.failureCriteria.getDisplayRepr();
         }
-        if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
-            defaultCriteria.failureCriteria.createStatefulInstance().getDisplayRepr();
+        if (defaultCriteria != null) {
+            Step expandedDefault = defaultCriteria.expand();
+            if (expandedDefault.failureCriteria != null) expandedDefault.failureCriteria.getDisplayRepr();
         }
     }
 }

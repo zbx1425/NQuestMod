@@ -22,15 +22,9 @@ public class Descriptor implements Criterion {
         this.richDescription = richDescription;
     }
 
-    public Descriptor(Descriptor singleton) {
-        this.base = singleton.base.createStatefulInstance();
-        this.description = singleton.description;
-        this.richDescription = singleton.richDescription;
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        return base.isFulfilled(player);
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        return base.evaluate(player, ctx.child("b"));
     }
 
     @Override
@@ -39,12 +33,12 @@ public class Descriptor implements Criterion {
     }
 
     @Override
-    public Criterion createStatefulInstance() {
-        return new Descriptor(this);
+    public void propagateManualTrigger(String triggerId, CriterionContext ctx) {
+        base.propagateManualTrigger(triggerId, ctx.child("b"));
     }
 
     @Override
-    public void propagateManualTrigger(String triggerId) {
-        base.propagateManualTrigger(triggerId);
+    public Criterion expand() {
+        return new Descriptor(base.expand(), description);
     }
 }

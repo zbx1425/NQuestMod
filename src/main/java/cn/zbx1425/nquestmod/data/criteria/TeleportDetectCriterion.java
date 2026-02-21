@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 public class TeleportDetectCriterion implements Criterion {
 
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
         return GenerationStatus.getClientState(player).hasWarped().isSet();
     }
 

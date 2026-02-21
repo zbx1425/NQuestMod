@@ -30,7 +30,7 @@ public class CurrentQuestScreen extends ItemListGui<Step> {
 
         PlayerProfile profile = NQuestMod.INSTANCE.questDispatcher.playerProfiles.get(player.getGameProfile().getId());
         progress = profile != null ? profile.activeQuests.values().stream().findFirst().orElse(null) : null;
-        quest = progress != null ? NQuestMod.INSTANCE.questDispatcher.quests.get(progress.questId) : null;
+        quest = progress != null ? progress.questSnapshot : null;
 
         if (quest != null) {
             setTitle(Component.literal(quest.name));

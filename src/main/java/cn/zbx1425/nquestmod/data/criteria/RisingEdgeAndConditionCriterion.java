@@ -6,51 +6,44 @@ import net.minecraft.server.level.ServerPlayer;
 
 public class RisingEdgeAndConditionCriterion implements Criterion {
 
-    protected final Criterion triggerCriteria;
-    protected final Criterion conditionCriteria;
-
-    protected transient boolean wasTriggerFulfilled = false;
+    protected Criterion triggerCriteria;
+    protected Criterion conditionCriteria;
 
     public RisingEdgeAndConditionCriterion(Criterion triggerCriteria, Criterion conditionCriteria) {
         this.triggerCriteria = triggerCriteria;
         this.conditionCriteria = conditionCriteria;
     }
 
-    public RisingEdgeAndConditionCriterion(RisingEdgeAndConditionCriterion singleton) {
-        this.triggerCriteria = singleton.triggerCriteria.createStatefulInstance();
-        this.conditionCriteria = singleton.conditionCriteria.createStatefulInstance();
-        this.wasTriggerFulfilled = false;
-    }
-
     @Override
-    public boolean isFulfilled(ServerPlayer player) {
-        if (!triggerCriteria.isFulfilled(player)) {
-            wasTriggerFulfilled = false;
+    public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
+        if (!triggerCriteria.evaluate(player, ctx.child("t"))) {
+            ctx.setBoolean("wasTriggerFulfilled", false);
             return false;
         }
-        if (!wasTriggerFulfilled) {
-            wasTriggerFulfilled = true;
-            return conditionCriteria.isFulfilled(player);
+        if (!ctx.getBoolean("wasTriggerFulfilled", true)) {
+            ctx.setBoolean("wasTriggerFulfilled", true);
+            return conditionCriteria.evaluate(player, ctx.child("c"));
         } else {
             return false;
         }
     }
 
     @Override
-    public net.minecraft.network.chat.Component getDisplayRepr() {
+    public Component getDisplayRepr() {
         return triggerCriteria.getDisplayRepr().copy()
             .append(Component.literal(" while: ").withStyle(ChatFormatting.GRAY))
             .append(conditionCriteria.getDisplayRepr());
     }
 
     @Override
-    public void propagateManualTrigger(String triggerId) {
-        triggerCriteria.propagateManualTrigger(triggerId);
-        conditionCriteria.propagateManualTrigger(triggerId);
+    public void propagateManualTrigger(String triggerId, CriterionContext ctx) {
+        triggerCriteria.propagateManualTrigger(triggerId, ctx.child("t"));
+        conditionCriteria.propagateManualTrigger(triggerId, ctx.child("c"));
     }
 
     @Override
-    public Criterion createStatefulInstance() {
-        return new RisingEdgeAndConditionCriterion(this);
+    public Criterion expand() {
+        return new RisingEdgeAndConditionCriterion(
+            triggerCriteria.expand(), conditionCriteria.expand());
     }
 }

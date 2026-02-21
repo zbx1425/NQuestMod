@@ -1,8 +1,10 @@
 package cn.zbx1425.nquestmod.data;
 
+import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
 import cn.zbx1425.nquestmod.data.ranking.QuestUserDatabase;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.Step;
+import cn.zbx1425.nquestmod.data.quest.StepState;
 import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 import cn.zbx1425.nquestmod.data.quest.QuestProgress;
@@ -55,18 +57,17 @@ public class QuestDispatcher {
                 continue;
             }
 
-            // Iterate over a copy to avoid ConcurrentModificationException
             for (QuestProgress progress : new ArrayList<>(profile.activeQuests.values())) {
-                Quest quest = quests.get(progress.questId);
-                if (quest == null || progress.currentStepIndex >= quest.steps.size()) {
+                if (progress.questSnapshot == null
+                    || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
                     continue;
                 }
                 isAnyQuestGoingOn = true;
 
                 ServerPlayer player = playerGetter.apply(profile.playerUuid);
-                if (player == null) continue; // Player might not be online, but has active quest
+                if (player == null) continue;
 
-                tryAdvance(profile, quest, progress, player, null);
+                tryAdvance(profile, progress, player, null);
             }
         }
         return isAnyQuestGoingOn;
@@ -77,11 +78,11 @@ public class QuestDispatcher {
         if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
 
         for (QuestProgress progress : new ArrayList<>(profile.activeQuests.values())) {
-            Quest quest = quests.get(progress.questId);
-            if (quest == null || progress.currentStepIndex >= quest.steps.size()) {
+            if (progress.questSnapshot == null
+                || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
                 continue;
             }
-            tryAdvance(profile, quest, progress, player, triggerId);
+            tryAdvance(profile, progress, player, triggerId);
         }
     }
 
@@ -96,10 +97,12 @@ public class QuestDispatcher {
 
         QuestProgress progress = new QuestProgress();
         progress.questId = questId;
+        progress.questSnapshot = quest;
         progress.currentStepIndex = 0;
         progress.questStartTime = System.currentTimeMillis();
         progress.stepStartTimes = new HashMap<>();
         progress.stepStartTimes.put(0, progress.questStartTime);
+        progress.resetStepStates();
 
         profile.activeQuests.put(questId, progress);
         callback.onQuestStarted(this, playerUuid, quest);
@@ -112,7 +115,7 @@ public class QuestDispatcher {
         List<QuestProgress> progresses = new ArrayList<>(profile.activeQuests.values());
         profile.activeQuests.clear();
         for (QuestProgress progress : progresses) {
-            Quest quest = quests.get(progress.questId);
+            Quest quest = progress.questSnapshot != null ? progress.questSnapshot : quests.get(progress.questId);
             if (quest != null) {
                 callback.onQuestAborted(this, playerUuid, quest);
             }
@@ -159,37 +162,48 @@ public class QuestDispatcher {
                 }
             }
         } else {
+            progress.resetStepStates();
             progress.stepStartTimes.put(progress.currentStepIndex, now);
         }
     }
 
-    private void tryAdvance(PlayerProfile profile, Quest quest, QuestProgress progress, ServerPlayer player, String triggerId) {
-        if (progress.currentStepStateful == null) {
-            Step currentStep = quest.steps.get(progress.currentStepIndex);
-            progress.currentStepStateful = currentStep.createStatefulInstance();
-            progress.defaultCriteriaStateful = quest.defaultCriteria == null ? null : quest.defaultCriteria.createStatefulInstance();
+    private void tryAdvance(PlayerProfile profile, QuestProgress progress, ServerPlayer player, String triggerId) {
+        if (progress.expandedCurrentStep == null) {
+            Step originalStep = progress.questSnapshot.steps.get(progress.currentStepIndex);
+            progress.expandedCurrentStep = originalStep.expand();
+            progress.expandedDefaultCriteria = progress.questSnapshot.defaultCriteria != null
+                ? progress.questSnapshot.defaultCriteria.expand() : null;
         }
 
+        Step currentStep = progress.expandedCurrentStep;
+        Step defaultCriteria = progress.expandedDefaultCriteria;
+
+        CriterionContext criteriaCtx =
+            new CriterionContext(progress.criteriaState, "");
+        CriterionContext failureCtx =
+            new CriterionContext(progress.failureCriteriaState, "");
+        CriterionContext defaultFailCtx =
+            new CriterionContext(progress.defaultFailureCriteriaState, "");
+
         if (triggerId != null) {
-            progress.currentStepStateful.propagateManualTrigger(triggerId);
-            if (progress.defaultCriteriaStateful != null) {
-                progress.defaultCriteriaStateful.propagateManualTrigger(triggerId);
+            currentStep.propagateManualTrigger(triggerId, criteriaCtx, failureCtx);
+            if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
+                defaultCriteria.failureCriteria.propagateManualTrigger(triggerId, defaultFailCtx);
             }
         }
 
         if (!isDebugMode(profile.playerUuid)) {
-            Optional<Component> questFailedAndReason = progress.currentStepStateful.isFailedAndReason(progress.defaultCriteriaStateful, player);
-            if (questFailedAndReason.isPresent()) {
+            Optional<Component> failed = currentStep.evaluateFailure(
+                player, failureCtx, defaultCriteria, defaultFailCtx);
+            if (failed.isPresent()) {
                 profile.activeQuests.remove(progress.questId);
-                callback.onQuestFailed(this, profile.playerUuid, quest, questFailedAndReason.get());
+                callback.onQuestFailed(this, profile.playerUuid, progress.questSnapshot, failed.get());
                 return;
             }
         }
 
-        if (progress.currentStepStateful.isFulfilled(player)) {
-            progress.currentStepStateful = null;
-            progress.defaultCriteriaStateful = null;
-            advanceQuestStep(profile, progress, quest);
+        if (currentStep.evaluate(player, criteriaCtx)) {
+            advanceQuestStep(profile, progress, progress.questSnapshot);
         }
     }
 }
