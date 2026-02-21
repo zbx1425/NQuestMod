@@ -81,13 +81,19 @@ public class QuestNotifications implements IQuestCallbacks {
     public void onQuestCompleted(QuestDispatcher questEngine, UUID playerUuid, Quest quest, QuestCompletionData data) {
         ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
         if (player == null) return;
+        boolean debug = questEngine.isDebugMode(playerUuid);
         player.sendSystemMessage(Component.literal("⭐ Quest Complete! ⭐")
                 .withStyle(Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(true)), false);
         player.sendSystemMessage(Component.literal(quest.name).withStyle(ChatFormatting.YELLOW), false);
         player.sendSystemMessage(Component.literal("  Time taken: ").withStyle(ChatFormatting.WHITE)
                 .append(Component.literal(formatDuration(data.durationMillis)).withStyle(ChatFormatting.AQUA)), false);
-        player.sendSystemMessage(Component.literal("  Quest Points: ").withStyle(ChatFormatting.WHITE)
-                .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
+        if (debug) {
+            player.sendSystemMessage(Component.literal("  (Debug - not recorded)")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), false);
+        } else {
+            player.sendSystemMessage(Component.literal("  Quest Points: ").withStyle(ChatFormatting.WHITE)
+                    .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
+        }
         sendSoundEffect(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
     }
@@ -142,6 +148,7 @@ public class QuestNotifications implements IQuestCallbacks {
             return Optional.empty();
         }
 
+        boolean debug = questEngine.isDebugMode(playerUuid);
         return profile.activeQuests.values().stream().findFirst().map(progress -> {
             Quest quest = questEngine.quests.get(progress.questId);
             if (quest == null || progress.currentStepIndex >= quest.steps.size()) {
@@ -149,7 +156,11 @@ public class QuestNotifications implements IQuestCallbacks {
             }
             Step currentStep = quest.steps.get(progress.currentStepIndex);
             return (event) -> {
-                 event.setName(currentStep.criteria.getDisplayRepr());
+                 Component name = debug
+                         ? Component.literal("[DEBUG] ").withStyle(ChatFormatting.DARK_GRAY)
+                                 .append(currentStep.criteria.getDisplayRepr())
+                         : currentStep.criteria.getDisplayRepr();
+                 event.setName(name);
                  event.setMax(quest.steps.size());
                  event.setValue(progress.currentStepIndex);
             };

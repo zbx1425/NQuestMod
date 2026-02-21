@@ -13,6 +13,8 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
+import java.util.Set;
+import java.util.HashSet;
 
 public class QuestDispatcher {
 
@@ -20,11 +22,26 @@ public class QuestDispatcher {
     private final QuestUserDatabase databaseManager;
     public Map<String, Quest> quests;
     public final Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
+    private final Set<UUID> debugPlayers = new HashSet<>();
 
     public QuestDispatcher(IQuestCallbacks callback, QuestUserDatabase databaseManager) {
         this.callback = callback;
         this.databaseManager = databaseManager;
         this.quests = Map.of();
+    }
+
+    public boolean isDebugMode(UUID playerUuid) {
+        return debugPlayers.contains(playerUuid);
+    }
+
+    public boolean toggleDebugMode(UUID playerUuid) {
+        if (debugPlayers.contains(playerUuid)) {
+            debugPlayers.remove(playerUuid);
+            return false;
+        } else {
+            debugPlayers.add(playerUuid);
+            return true;
+        }
     }
 
     public PlayerProfile getPlayerProfile(UUID playerUuid) {
@@ -73,6 +90,7 @@ public class QuestDispatcher {
         if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         Quest quest = quests.get(questId);
         if (quest == null) throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
+        if (!quest.isPublished() && !isDebugMode(playerUuid)) throw new QuestException(QuestException.Type.QUEST_NOT_PUBLISHED);
         if (profile.activeQuests.containsKey(questId)) throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);
         if (!profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_ONLY_ONE_AT_A_TIME);
 
@@ -102,13 +120,11 @@ public class QuestDispatcher {
     }
 
     private void advanceQuestStep(PlayerProfile profile, QuestProgress progress, Quest quest) {
-        // Mark current step as complete
         long now = System.currentTimeMillis();
         progress.currentStepIndex++;
         callback.onStepCompleted(this, profile.playerUuid, quest, progress);
 
         if (progress.currentStepIndex >= quest.steps.size()) {
-            // Quest completed
             profile.activeQuests.remove(progress.questId);
 
             QuestCompletionData completionData = new QuestCompletionData();
@@ -117,8 +133,7 @@ public class QuestDispatcher {
             completionData.completionTime = now;
             completionData.durationMillis = now - progress.questStartTime;
             completionData.questPoints = quest.questPoints;
-            
-            // Calculate and store step durations
+
             completionData.stepDurations = new HashMap<>();
             long lastTimestamp = progress.questStartTime;
             for (int i = 0; i < quest.steps.size(); i++) {
@@ -128,18 +143,22 @@ public class QuestDispatcher {
                 lastTimestamp = stepEndTimestamp;
             }
 
-            profile.totalQuestPoints += quest.questPoints;
-            profile.totalQuestCompletions += 1;
+            boolean debug = isDebugMode(profile.playerUuid);
+            if (!debug) {
+                profile.totalQuestPoints += quest.questPoints;
+                profile.totalQuestCompletions += 1;
+            }
 
             callback.onQuestCompleted(this, profile.playerUuid, quest, completionData);
-            try {
-                databaseManager.addQuestCompletion(profile.playerUuid, quest, completionData);
-            } catch (SQLException e) {
-                // Let's hope this doesn't happen.
-                throw new RuntimeException(e);
+
+            if (!debug) {
+                try {
+                    databaseManager.addQuestCompletion(profile.playerUuid, quest, completionData);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
         } else {
-            // Advance to next step
             progress.stepStartTimes.put(progress.currentStepIndex, now);
         }
     }
@@ -158,15 +177,17 @@ public class QuestDispatcher {
             }
         }
 
-        Optional<Component> questFailedAndReason = progress.currentStepStateful.isFailedAndReason(progress.defaultCriteriaStateful, player);
-        if (questFailedAndReason.isPresent()) {
-            profile.activeQuests.remove(progress.questId);
-            callback.onQuestFailed(this, profile.playerUuid, quest, questFailedAndReason.get());
-            return;
+        if (!isDebugMode(profile.playerUuid)) {
+            Optional<Component> questFailedAndReason = progress.currentStepStateful.isFailedAndReason(progress.defaultCriteriaStateful, player);
+            if (questFailedAndReason.isPresent()) {
+                profile.activeQuests.remove(progress.questId);
+                callback.onQuestFailed(this, profile.playerUuid, quest, questFailedAndReason.get());
+                return;
+            }
         }
 
         if (progress.currentStepStateful.isFulfilled(player)) {
-            progress.currentStepStateful = null; // Reset for next step
+            progress.currentStepStateful = null;
             progress.defaultCriteriaStateful = null;
             advanceQuestStep(profile, progress, quest);
         }

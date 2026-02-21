@@ -28,6 +28,7 @@ public class QuestException extends Exception {
     public enum Type {
         PLAYER_NOT_FOUND,
         QUEST_NOT_FOUND,
+        QUEST_NOT_PUBLISHED,
         QUEST_ALREADY_STARTED,
         QUEST_NOT_STARTED,
         QUEST_ONLY_ONE_AT_A_TIME;

@@ -157,6 +157,19 @@ public class Commands {
                     })
                 )
             )
+            .then(literal.apply("debugMode")
+                .requires(source -> source.hasPermission(2))
+                .then(argument.apply("participant", EntityArgument.player())
+                    .executes(ctx -> {
+                        toggleDebugMode(EntityArgument.getPlayer(ctx, "participant"), ctx.getSource());
+                        return 1;
+                    })
+                )
+                .executes(ctx -> {
+                    toggleDebugMode(ctx.getSource().getPlayerOrException(), ctx.getSource());
+                    return 1;
+                })
+            )
             .then(literal.apply("sign")
                 .requires(source -> source.hasPermission(3))
                 .executes(ctx -> {
@@ -214,6 +227,15 @@ public class Commands {
         } catch (QuestException ex) {
             throw ex.createMinecraftException();
         }
+    }
+
+    private static void toggleDebugMode(ServerPlayer participant, CommandSourceStack source) {
+        boolean enabled = NQuestMod.INSTANCE.questDispatcher.toggleDebugMode(participant.getGameProfile().getId());
+        Component message = Component.literal("Debug mode for ")
+                .append(Component.literal(participant.getGameProfile().getName()).withStyle(net.minecraft.ChatFormatting.AQUA))
+                .append(Component.literal(enabled ? ": ENABLED" : ": DISABLED")
+                        .withStyle(enabled ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
+        source.sendSuccess(() -> message, false);
     }
 
     private static String getQuestDefinition(String questId) throws CommandSyntaxException {

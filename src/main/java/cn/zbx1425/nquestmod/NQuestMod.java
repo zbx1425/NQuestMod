@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class NQuestMod implements ModInitializer {
 
@@ -89,7 +90,11 @@ public class NQuestMod implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((packetListener, server) -> {
             server.execute(() -> {
                 ServerPlayer player = packetListener.getPlayer();
-                PlayerProfile profile = questDispatcher.playerProfiles.remove(player.getGameProfile().getId());
+                UUID playerUuid = player.getGameProfile().getId();
+                if (questDispatcher.isDebugMode(playerUuid)) {
+                    questDispatcher.toggleDebugMode(playerUuid);
+                }
+                PlayerProfile profile = questDispatcher.playerProfiles.remove(playerUuid);
                 if (profile != null) {
                     try {
                         userDatabase.savePlayerProfile(profile);

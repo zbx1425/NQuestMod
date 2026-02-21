@@ -61,8 +61,11 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
         if (selectedPrimaryTab == null) {
             return CompletableFuture.completedFuture(Pair.of(List.of(), 0));
         }
+        boolean canSeeDrafts = player.hasPermissions(2)
+                || NQuestMod.INSTANCE.questDispatcher.isDebugMode(player.getGameProfile().getId());
         List<Quest> filteredQuests = NQuestMod.INSTANCE.questDispatcher.quests.values().stream()
                 .filter(q -> selectedPrimaryTab.getKey().equals(q.category))
+                .filter(q -> q.isPublished() || canSeeDrafts)
                 .sorted(Comparator.<Quest>comparingInt(q -> {
                     QuestCategory cat = NQuestMod.INSTANCE.questCategories.get(q.category);
                     if (cat == null || cat.tiers == null) return Integer.MAX_VALUE;
@@ -90,10 +93,17 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
             builder.setItem(BuiltInRegistries.ITEM.getOptional(new ResourceLocation(tier.icon)).orElse(Items.STONE));
             builder.addLoreLine(Component.literal("Tier: " + tier.name).withStyle(ChatFormatting.YELLOW));
         }
+        if (!item.isPublished()) {
+            builder.addLoreLine(Component.literal("[DRAFT]").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
         for (Component loreLine : item.formatDescription()) {
             builder.addLoreLine(loreLine);
         }
-        return builder.setName(Component.literal(item.name))
+
+        Component displayName = item.isPublished()
+                ? Component.literal(item.name)
+                : Component.literal(item.name).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
+        return builder.setName(displayName)
                 .setCallback((i, t, a) -> this.callback.accept(item, this));
     }
 }

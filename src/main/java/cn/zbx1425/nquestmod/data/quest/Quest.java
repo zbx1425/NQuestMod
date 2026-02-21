@@ -9,15 +9,22 @@ import java.util.stream.Stream;
 
 public class Quest {
 
+    public enum QuestStatus { DRAFT, PUBLISHED }
+
     public String id;
     public String name;
     public String description;
     public String category;
     public String tier;
     public int questPoints;
+    public QuestStatus status;
 
     public Step defaultCriteria; // Optional
     public List<Step> steps;
+
+    public boolean isPublished() {
+        return status == null || status == QuestStatus.PUBLISHED;
+    }
 
     public List<Component> formatDescription() {
         return Stream.of(description.split("\n"))
