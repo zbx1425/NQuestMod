@@ -1,0 +1,30 @@
+I'm developing a Minecraft mod with Fabric and Minecraft 1.20.4.
+
+Overview: MTR Quest would be a casual exploration experience that encourages players to explore different areas of the server by riding the trains. The main game area would be located under the ground next to or under the R2C lobby. There will also be another portal next to the R2C entry/finish line that teleports people to the main game area. 
+
+I have already layed out a project structure, which consists of class files that are all completely empty (so no need to read them). You can list them out at src/main/java/cn/zbx1425/nquestbot . You can make changes as required.
+
+Game Details:
+The game is played in a series of quests. A quest is a sequence of objectives to:
+- manually trigger
+  - This objective has an UUID, and is fulfilled by pushing a button with a cmdblock that runs a command with this UUID.
+  - Example: visit a location / complete a parkour at a location / solve a puzzle at a location
+- player in a certain AABB of x-y-z
+- ride a line
+- visit a station
+- ride to a station
+  - This necessates that at the moment the player enters the station area, they must be on a train.
+- ride a line to a station
+  - Same as above, but also the train must be of a certain line.
+
+Implmentation:
+- Make the abstract logic part that's not coupled with Minecraft game logic. Leave interfaces in TODO and I'll implement them myself.
+- Don't use Minecraft's player for decouplation, they can be authenticated by their UUID.
+- Determining object complete-ness: There's an interface that by supplying a player UUID, you get a pos: Vec3, ridingTrainLine: String? and containingStationAreas: String[] as return.
+  - I'll periodically call your function to update quest status, just leave an interface update function.
+  - When I want to trigger an manually trigger objective, I'll call your interface function with player UUID and objective UUID.
+
+Ranking:
+- Each quest will give a number of QP (quest points) to the player
+- Record the time taken for a player between each objective, and to complete the whole quest
+- Leaderboards for overall QPs, and leaderboard for each quest for time taken
