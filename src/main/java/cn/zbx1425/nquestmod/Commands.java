@@ -209,7 +209,7 @@ public class Commands {
 
     private static void startQuest(ServerPlayer participant, String questId) throws CommandSyntaxException {
         try {
-            NQuestMod.INSTANCE.questDispatcher.startQuest(participant.getGameProfile().getId(), questId);
+            NQuestMod.INSTANCE.questDispatcher.startQuest(participant, questId);
         } catch (QuestException ex) {
             throw ex.createMinecraftException();
         }

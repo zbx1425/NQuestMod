@@ -14,6 +14,7 @@ public class QuestCategory {
     public String icon;
     public int order;
     public Map<String, QuestTier> tiers;
+    public boolean hidden = false;
 
     public List<Component> formatDescription() {
         return Stream.of(description.split("\n"))

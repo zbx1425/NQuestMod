@@ -101,7 +101,7 @@ public class QuestSyncClient {
                     }
                 });
             } catch (Exception e) {
-                NQuestMod.LOGGER.warn("Sync poll failed, using local cache: {}", e.getMessage());
+                NQuestMod.LOGGER.warn("Sync poll failed, using local cache", e);
             } finally {
                 syncInProgress.set(false);
             }
@@ -163,8 +163,21 @@ public class QuestSyncClient {
     }
 
     private void writeBundleToCache(SyncBundle bundle) throws IOException {
-        for (Quest quest : bundle.quests.values()) {
-            questStorage.saveQuestDefinition(quest);
+        Map<String, Quest> oldQuests = NQuestMod.INSTANCE.questDispatcher.quests;
+        int written = 0;
+        for (Map.Entry<String, Quest> entry : bundle.quests.entrySet()) {
+            Quest oldQuest = oldQuests.get(entry.getKey());
+            if (oldQuest != null) {
+                String oldJson = NQuestGson.INSTANCE.toJson(oldQuest);
+                String newJson = NQuestGson.INSTANCE.toJson(entry.getValue());
+                if (oldJson.equals(newJson)) continue;
+            }
+            questStorage.saveQuestDefinition(entry.getValue());
+            written++;
+        }
+        if (written > 0 || oldQuests.size() != bundle.quests.size()) {
+            NQuestMod.LOGGER.info("Sync cache: wrote {} changed quests, {} total",
+                    written, bundle.quests.size());
         }
         questStorage.removeStaleQuests(bundle.quests.keySet());
         questStorage.saveQuestCategories(bundle.categories);

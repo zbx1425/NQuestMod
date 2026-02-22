@@ -4,12 +4,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Quest {
 
-    public enum QuestStatus { DRAFT, PUBLISHED }
+    public enum QuestStatus { PRIVATE, STAGING, PUBLIC }
 
     public String id;
     public String name;
@@ -18,12 +19,22 @@ public class Quest {
     public String tier;
     public int questPoints;
     public QuestStatus status;
+    public List<String> creators;
 
     public Step defaultCriteria; // Optional
     public List<Step> steps;
 
-    public boolean isPublished() {
-        return status == null || status == QuestStatus.PUBLISHED;
+    public QuestStatus getEffectiveStatus() {
+        return status != null ? status : QuestStatus.PUBLIC;
+    }
+
+    public boolean isVisibleTo(UUID playerUuid, boolean debugMode, boolean hasPermLevel2) {
+        return switch (getEffectiveStatus()) {
+            case PUBLIC -> true;
+            case STAGING -> debugMode && hasPermLevel2;
+            case PRIVATE -> debugMode && hasPermLevel2
+                    && creators != null && creators.contains(playerUuid.toString());
+        };
     }
 
     public List<Component> formatDescription() {

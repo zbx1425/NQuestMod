@@ -4,7 +4,7 @@ public class SyncConfig {
 
     public String backendUrl = "";
     public String apiKey = "";
-    public int pollIntervalSeconds = 30;
+    public int pollIntervalSeconds = 60;
     public boolean enabled = false;
 
     public boolean isValid() {

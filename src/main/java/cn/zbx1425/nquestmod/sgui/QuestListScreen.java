@@ -17,6 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -34,6 +35,7 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
                     .map(Pair::of)
                     .orElse(null),
                 NQuestMod.INSTANCE.questCategories.entrySet().stream()
+                    .filter(c -> !c.getValue().hidden)
                     .sorted(Comparator.comparingInt(c -> c.getValue().order))
                     .map(entry -> Pair.<Pair<String, QuestCategory>, Supplier<GuiElementBuilder>>of(
                         Pair.of(entry),
@@ -61,11 +63,12 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
         if (selectedPrimaryTab == null) {
             return CompletableFuture.completedFuture(Pair.of(List.of(), 0));
         }
-        boolean canSeeDrafts = player.hasPermissions(2)
-                || NQuestMod.INSTANCE.questDispatcher.isDebugMode(player.getGameProfile().getId());
+        UUID playerUuid = player.getGameProfile().getId();
+        boolean debugMode = NQuestMod.INSTANCE.questDispatcher.isDebugMode(playerUuid);
+        boolean hasPermLevel2 = player.hasPermissions(2);
         List<Quest> filteredQuests = NQuestMod.INSTANCE.questDispatcher.quests.values().stream()
                 .filter(q -> selectedPrimaryTab.getKey().equals(q.category))
-                .filter(q -> q.isPublished() || canSeeDrafts)
+                .filter(q -> q.isVisibleTo(playerUuid, debugMode, hasPermLevel2))
                 .sorted(Comparator.<Quest>comparingInt(q -> {
                     QuestCategory cat = NQuestMod.INSTANCE.questCategories.get(q.category);
                     if (cat == null || cat.tiers == null) return Integer.MAX_VALUE;
@@ -93,14 +96,17 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
             builder.setItem(BuiltInRegistries.ITEM.getOptional(new ResourceLocation(tier.icon)).orElse(Items.STONE));
             builder.addLoreLine(Component.literal("Tier: " + tier.name).withStyle(ChatFormatting.YELLOW));
         }
-        if (!item.isPublished()) {
-            builder.addLoreLine(Component.literal("[DRAFT]").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        Quest.QuestStatus effectiveStatus = item.getEffectiveStatus();
+        if (effectiveStatus == Quest.QuestStatus.PRIVATE) {
+            builder.addLoreLine(Component.literal("[PRIVATE]").withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC));
+        } else if (effectiveStatus == Quest.QuestStatus.STAGING) {
+            builder.addLoreLine(Component.literal("[STAGING]").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
         }
         for (Component loreLine : item.formatDescription()) {
             builder.addLoreLine(loreLine);
         }
 
-        Component displayName = item.isPublished()
+        Component displayName = effectiveStatus == Quest.QuestStatus.PUBLIC
                 ? Component.literal(item.name)
                 : Component.literal(item.name).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
         return builder.setName(displayName)

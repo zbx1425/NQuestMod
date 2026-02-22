@@ -51,9 +51,28 @@ public class QuestDispatcher {
     }
 
     public void reloadQuests(Map<String, Quest> newQuests) {
-        for (Quest quest : newQuests.values()) {
-            quest.preTouchDescriptions();
+        Set<String> deletedQuestIds = new HashSet<>(this.quests.keySet());
+        deletedQuestIds.removeAll(newQuests.keySet());
+
+        if (!deletedQuestIds.isEmpty()) {
+            for (PlayerProfile profile : playerProfiles.values()) {
+                for (String deletedId : deletedQuestIds) {
+                    QuestProgress progress = profile.activeQuests.remove(deletedId);
+                    if (progress != null) {
+                        Quest quest = progress.questSnapshot != null
+                                ? progress.questSnapshot : this.quests.get(deletedId);
+                        if (quest != null) {
+                            callback.onQuestAborted(this, profile.playerUuid, quest);
+                        }
+                    }
+                }
+            }
         }
+
+        for (Map.Entry<String, Quest> entry : newQuests.entrySet()) {
+            entry.getValue().preTouchDescriptions();
+        }
+
         this.quests = newQuests;
     }
 
@@ -93,12 +112,15 @@ public class QuestDispatcher {
         }
     }
 
-    public void startQuest(UUID playerUuid, String questId) throws QuestException {
+    public void startQuest(ServerPlayer player, String questId) throws QuestException {
+        UUID playerUuid = player.getGameProfile().getId();
         PlayerProfile profile = playerProfiles.get(playerUuid);
         if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         Quest quest = quests.get(questId);
         if (quest == null) throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
-        if (!quest.isPublished() && !isDebugMode(playerUuid)) throw new QuestException(QuestException.Type.QUEST_NOT_PUBLISHED);
+        if (!quest.isVisibleTo(playerUuid, isDebugMode(playerUuid), player.hasPermissions(2))) {
+            throw new QuestException(QuestException.Type.QUEST_NOT_PUBLISHED);
+        }
         if (profile.activeQuests.containsKey(questId)) throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);
         if (!profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_ONLY_ONE_AT_A_TIME);
 

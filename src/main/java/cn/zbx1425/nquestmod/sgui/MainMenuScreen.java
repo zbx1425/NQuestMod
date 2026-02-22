@@ -71,7 +71,7 @@ public class MainMenuScreen extends SimpleGui {
                         .setName(Component.literal(quest.name)),
                 (gui) -> {
                     try {
-                        NQuestMod.INSTANCE.questDispatcher.startQuest(player.getGameProfile().getId(), quest.id);
+                        NQuestMod.INSTANCE.questDispatcher.startQuest(player, quest.id);
                         gui.shouldCloseOnConfirm = true;
                     } catch (QuestException e) {
                         player.sendSystemMessage(e.getDisplayRepr(), false);
