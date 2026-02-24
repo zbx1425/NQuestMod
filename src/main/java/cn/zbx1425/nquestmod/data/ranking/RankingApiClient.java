@@ -1,7 +1,7 @@
 package cn.zbx1425.nquestmod.data.ranking;
 
+import cn.zbx1425.nquestmod.ServerConfig;
 import cn.zbx1425.nquestmod.data.NQuestGson;
-import cn.zbx1425.nquestmod.data.SyncConfig;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -21,12 +21,12 @@ import java.util.concurrent.Executors;
 
 public class RankingApiClient {
 
-    private final SyncConfig config;
+    private final ServerConfig config;
     private final HttpClient httpClient;
     private final ExecutorService executor;
     private final Gson gson = NQuestGson.INSTANCE;
 
-    public RankingApiClient(SyncConfig config) {
+    public RankingApiClient(ServerConfig config) {
         this.config = config;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -39,7 +39,8 @@ public class RankingApiClient {
     }
 
     public boolean isEnabled() {
-        return config.isValid();
+        return config.webSyncEnabled.value
+            && config.webBackendUrl.value != null && !config.webBackendUrl.value.isEmpty();
     }
 
     public void shutdown() {
@@ -171,8 +172,8 @@ public class RankingApiClient {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(config.backendUrl + path))
-                        .header("X-API-Key", config.apiKey)
+                        .uri(URI.create(config.webBackendUrl.value + path))
+                        .header("X-API-Key", config.webApiKey.value)
                         .timeout(Duration.ofSeconds(10))
                         .GET()
                         .build();
@@ -197,8 +198,8 @@ public class RankingApiClient {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(config.backendUrl + path))
-                        .header("X-API-Key", config.apiKey)
+                        .uri(URI.create(config.webBackendUrl.value + path))
+                        .header("X-API-Key", config.webApiKey.value)
                         .header("Content-Type", "application/json")
                         .timeout(Duration.ofSeconds(15))
                         .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(body)))

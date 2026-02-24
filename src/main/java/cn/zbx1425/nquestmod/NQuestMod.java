@@ -3,7 +3,6 @@ package cn.zbx1425.nquestmod;
 import cn.zbx1425.nquestmod.data.QuestDispatcher;
 import cn.zbx1425.nquestmod.data.QuestPersistence;
 import cn.zbx1425.nquestmod.data.QuestSyncClient;
-import cn.zbx1425.nquestmod.data.SyncConfig;
 import cn.zbx1425.nquestmod.data.quest.QuestCategory;
 import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import cn.zbx1425.nquestmod.data.ranking.LocalProfileStorage;
@@ -11,6 +10,7 @@ import cn.zbx1425.nquestmod.data.ranking.PendingCompletions;
 import cn.zbx1425.nquestmod.data.ranking.RankingApiClient;
 import cn.zbx1425.nquestmod.interop.GenerationStatus;
 import cn.zbx1425.nquestmod.interop.TscStatus;
+import com.google.gson.JsonPrimitive;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,6 +34,8 @@ public class NQuestMod implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("NQuestMod");
     public static NQuestMod INSTANCE;
 
+    public static ServerConfig SERVER_CONFIG = new ServerConfig();
+
     public QuestPersistence questStorage;
     public RankingApiClient rankingApi;
     public LocalProfileStorage profileStorage;
@@ -51,15 +53,15 @@ public class NQuestMod implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTING.register((server) -> {
             try {
+                SERVER_CONFIG.load(server.getServerDirectory().toPath().resolve("config").resolve("nquest.json"));
+
                 Path basePath = server.getWorldPath(LevelResource.ROOT).resolve("nquest");
                 Files.createDirectories(basePath);
 
                 questStorage = new QuestPersistence(basePath);
                 questCategories = questStorage.loadQuestCategories();
 
-                SyncConfig syncConfig = questStorage.loadSyncConfig();
-
-                rankingApi = new RankingApiClient(syncConfig);
+                rankingApi = new RankingApiClient(SERVER_CONFIG);
                 profileStorage = new LocalProfileStorage(basePath);
                 pendingCompletions = new PendingCompletions(basePath);
 
@@ -67,11 +69,17 @@ public class NQuestMod implements ModInitializer {
                 questDispatcher = new QuestDispatcher(questNotifications, rankingApi);
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
 
-                commandSigner = questStorage.getOrCreateCommandSigner();
+                commandSigner = new CommandSigner();
+                if (SERVER_CONFIG.commandSigningKey.value != null) {
+                    commandSigner.signingKey = SERVER_CONFIG.commandSigningKey.value;
+                } else {
+                    SERVER_CONFIG.commandSigningKey = SERVER_CONFIG.commandSigningKey.withNewValueToPersist(
+                        commandSigner.signingKey, new JsonPrimitive(commandSigner.signingKey.toString()));
+                }
 
-                questSyncClient = new QuestSyncClient(syncConfig, questStorage, server);
+                questSyncClient = new QuestSyncClient(SERVER_CONFIG, questStorage, server);
                 if (questSyncClient.isEnabled()) {
-                    LOGGER.info("Quest remote sync enabled: {}", syncConfig.backendUrl);
+                    LOGGER.info("Quest remote sync enabled: {}", SERVER_CONFIG.webBackendUrl.value);
                 }
 
                 if (rankingApi.isEnabled()) {
@@ -95,6 +103,11 @@ public class NQuestMod implements ModInitializer {
                 } catch (IOException e) {
                     LOGGER.error("Failed to save quest categories", e);
                 }
+            }
+            try {
+                SERVER_CONFIG.save();
+            } catch (IOException e) {
+                LOGGER.error("Failed to save server config", e);
             }
         });
 

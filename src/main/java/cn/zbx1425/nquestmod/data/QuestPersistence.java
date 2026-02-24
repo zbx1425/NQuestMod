@@ -1,6 +1,5 @@
 package cn.zbx1425.nquestmod.data;
 
-import cn.zbx1425.nquestmod.CommandSigner;
 import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.QuestCategory;
@@ -95,35 +94,6 @@ public class QuestPersistence {
                     }
                 }
             });
-        }
-    }
-
-    public SyncConfig loadSyncConfig() {
-        Path configFile = basePath.resolve("sync_config.json");
-        if (!Files.exists(configFile)) {
-            return new SyncConfig();
-        }
-        try (Reader reader = Files.newBufferedReader(configFile)) {
-            SyncConfig config = NQuestGson.INSTANCE.fromJson(reader, SyncConfig.class);
-            return config != null ? config : new SyncConfig();
-        } catch (Exception e) {
-            NQuestMod.LOGGER.warn("Failed to load sync config, sync disabled", e);
-            return new SyncConfig();
-        }
-    }
-
-    public CommandSigner getOrCreateCommandSigner() throws IOException {
-        Path signerFile = basePath.resolve("sign_secret.json");
-        if (Files.exists(signerFile)) {
-            try (Reader reader = Files.newBufferedReader(signerFile)) {
-                return NQuestGson.INSTANCE.fromJson(reader, CommandSigner.class);
-            }
-        } else {
-            CommandSigner signer = new CommandSigner();
-            try (Writer writer = Files.newBufferedWriter(signerFile)) {
-                NQuestGson.INSTANCE.toJson(signer, writer);
-            }
-            return signer;
         }
     }
 

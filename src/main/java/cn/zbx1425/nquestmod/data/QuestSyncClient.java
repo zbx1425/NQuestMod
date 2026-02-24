@@ -1,6 +1,7 @@
 package cn.zbx1425.nquestmod.data;
 
 import cn.zbx1425.nquestmod.NQuestMod;
+import cn.zbx1425.nquestmod.ServerConfig;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.QuestCategory;
 import com.google.gson.JsonObject;
@@ -27,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QuestSyncClient {
 
-    private final SyncConfig config;
+    private final ServerConfig config;
     private final QuestPersistence questStorage;
     private final MinecraftServer server;
     private final HttpClient httpClient;
@@ -37,7 +38,7 @@ public class QuestSyncClient {
     private long lastPollTick = 0;
     private final AtomicBoolean syncInProgress = new AtomicBoolean(false);
 
-    public QuestSyncClient(SyncConfig config, QuestPersistence questStorage, MinecraftServer server) {
+    public QuestSyncClient(ServerConfig config, QuestPersistence questStorage, MinecraftServer server) {
         this.config = config;
         this.questStorage = questStorage;
         this.server = server;
@@ -53,12 +54,13 @@ public class QuestSyncClient {
     }
 
     public boolean isEnabled() {
-        return config.isValid();
+        return config.webSyncEnabled.value
+            && config.webBackendUrl.value != null && !config.webBackendUrl.value.isEmpty();
     }
 
     public void tick(long tickCount) {
         if (!isEnabled()) return;
-        long pollIntervalTicks = config.pollIntervalSeconds * 20L;
+        long pollIntervalTicks = config.webSyncPollIntervalSeconds.value * 20L;
         if (lastPollTick != 0 && tickCount - lastPollTick < pollIntervalTicks) return;
         lastPollTick = tickCount;
         pollAsync();
@@ -118,8 +120,8 @@ public class QuestSyncClient {
 
     private long fetchSyncStatus() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.backendUrl + "/sync/status"))
-                .header("X-API-Key", config.apiKey)
+                .uri(URI.create(config.webBackendUrl.value + "/sync/status"))
+                .header("X-API-Key", config.webApiKey.value)
                 .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
@@ -135,8 +137,8 @@ public class QuestSyncClient {
 
     private SyncBundle fetchSyncBundle() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.backendUrl + "/sync/bundle"))
-                .header("X-API-Key", config.apiKey)
+                .uri(URI.create(config.webBackendUrl.value + "/sync/bundle"))
+                .header("X-API-Key", config.webApiKey.value)
                 .timeout(Duration.ofSeconds(30))
                 .GET()
                 .build();
