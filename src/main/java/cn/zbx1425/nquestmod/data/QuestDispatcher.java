@@ -194,6 +194,8 @@ public class QuestDispatcher {
                     profile.qpBalance = response.qpBalance;
                     profile.totalQuestCompletions = response.totalQuestCompletions;
                     profile.lastStatsSyncTime = System.currentTimeMillis();
+                    callback.onCompletionRanked(profile.playerUuid, quest, completionData,
+                            response.isPersonalBest, response.isWorldRecord, response.rank);
                     NQuestMod.INSTANCE.pendingCompletions.replayIfNeeded(rankingApi);
                 });
             }

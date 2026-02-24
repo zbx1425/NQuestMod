@@ -4,7 +4,6 @@ import cn.zbx1425.nquestmod.data.QuestDispatcher;
 import cn.zbx1425.nquestmod.data.IQuestCallbacks;
 import cn.zbx1425.nquestmod.data.quest.*;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -96,6 +95,30 @@ public class QuestNotifications implements IQuestCallbacks {
         }
         sendSoundEffect(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
+    }
+
+    @Override
+    public void onCompletionRanked(UUID playerUuid, Quest quest, QuestCompletionData data,
+                                   boolean isPersonalBest, boolean isWorldRecord, int rank) {
+        server.execute(() -> {
+            ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
+            if (player == null) return;
+
+            if (isWorldRecord) {
+                player.sendSystemMessage(Component.literal("  World Record!")
+                        .withStyle(Style.EMPTY.withColor(ChatFormatting.GREEN).withBold(true)), false);
+                sendSoundEffect(player, SoundEvents.PLAYER_LEVELUP, 1.0f, 1.5f);
+            } else if (isPersonalBest) {
+                player.sendSystemMessage(Component.literal("  Personal Best!")
+                        .withStyle(Style.EMPTY.withColor(ChatFormatting.GREEN).withBold(true)), false);
+                sendSoundEffect(player, SoundEvents.PLAYER_LEVELUP, 0.8f, 1.2f);
+            }
+
+            if (rank > 0) {
+                player.sendSystemMessage(Component.literal("  Rank: ").withStyle(ChatFormatting.WHITE)
+                        .append(Component.literal("#" + rank).withStyle(ChatFormatting.GOLD)), false);
+            }
+        });
     }
 
     @Override

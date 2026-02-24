@@ -39,12 +39,14 @@ public class QuestSpeedrunScreen extends TabbedItemListGui<QuestCompletionData, 
         super.init();
 
         if (selectedPrimaryTab != LeaderboardScreen.LeaderboardType.SPEEDRUN) {
-            if (parent instanceof LeaderboardScreen leaderboardScreen) {
-                leaderboardScreen.selectedPrimaryTab = selectedPrimaryTab;
-                leaderboardScreen.init();
+            if (parent instanceof QuestListScreen questListScreen) {
+                if (questListScreen.parent instanceof LeaderboardScreen leaderboardScreen) {
+                    leaderboardScreen.selectedPrimaryTab = selectedPrimaryTab;
+                    leaderboardScreen.init();
+                }
+                questListScreen.goBack();
+                return;
             }
-            goBack();
-            return;
         }
 
         setSlot(7, new GuiElementBuilder(Items.BOOK)

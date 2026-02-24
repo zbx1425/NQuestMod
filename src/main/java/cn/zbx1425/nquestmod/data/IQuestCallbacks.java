@@ -15,6 +15,9 @@ public interface IQuestCallbacks {
 
     void onQuestCompleted(QuestDispatcher questEngine, UUID playerUuid, Quest quest, QuestCompletionData data);
 
+    void onCompletionRanked(UUID playerUuid, Quest quest, QuestCompletionData data,
+                            boolean isPersonalBest, boolean isWorldRecord, int rank);
+
     void onQuestAborted(QuestDispatcher questEngine, UUID playerUuid, Quest quest);
 
     void onQuestFailed(QuestDispatcher questEngine, UUID playerUuid, Quest quest, Component reason);
