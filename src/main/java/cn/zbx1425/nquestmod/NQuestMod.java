@@ -5,13 +5,15 @@ import cn.zbx1425.nquestmod.data.QuestPersistence;
 import cn.zbx1425.nquestmod.data.QuestSyncClient;
 import cn.zbx1425.nquestmod.data.SyncConfig;
 import cn.zbx1425.nquestmod.data.quest.QuestCategory;
-import cn.zbx1425.nquestmod.data.ranking.QuestUserDatabase;
+import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
+import cn.zbx1425.nquestmod.data.ranking.LocalProfileStorage;
+import cn.zbx1425.nquestmod.data.ranking.PendingCompletions;
+import cn.zbx1425.nquestmod.data.ranking.RankingApiClient;
 import cn.zbx1425.nquestmod.interop.GenerationStatus;
 import cn.zbx1425.nquestmod.interop.TscStatus;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -23,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +35,9 @@ public class NQuestMod implements ModInitializer {
     public static NQuestMod INSTANCE;
 
     public QuestPersistence questStorage;
-    public QuestUserDatabase userDatabase;
+    public RankingApiClient rankingApi;
+    public LocalProfileStorage profileStorage;
+    public PendingCompletions pendingCompletions;
     public QuestDispatcher questDispatcher;
     public QuestNotifications questNotifications;
     public Map<String, QuestCategory> questCategories = new HashMap<>();
@@ -54,28 +57,37 @@ public class NQuestMod implements ModInitializer {
                 questStorage = new QuestPersistence(basePath);
                 questCategories = questStorage.loadQuestCategories();
 
-                userDatabase = new QuestUserDatabase(basePath.resolve("user.db"));
+                SyncConfig syncConfig = questStorage.loadSyncConfig();
+
+                rankingApi = new RankingApiClient(syncConfig);
+                profileStorage = new LocalProfileStorage(basePath);
+                pendingCompletions = new PendingCompletions(basePath);
+
                 questNotifications = new QuestNotifications(server);
-                questDispatcher = new QuestDispatcher(questNotifications, userDatabase);
+                questDispatcher = new QuestDispatcher(questNotifications, rankingApi);
                 questDispatcher.quests = questStorage.loadQuestDefinitions();
 
                 commandSigner = questStorage.getOrCreateCommandSigner();
 
-                SyncConfig syncConfig = questStorage.loadSyncConfig();
                 questSyncClient = new QuestSyncClient(syncConfig, questStorage, server);
                 if (questSyncClient.isEnabled()) {
                     LOGGER.info("Quest remote sync enabled: {}", syncConfig.backendUrl);
                 }
-            } catch (IOException | SQLException ex) {
+
+                if (rankingApi.isEnabled()) {
+                    pendingCompletions.replayAll(rankingApi);
+                }
+            } catch (IOException ex) {
                 LOGGER.error("Failed to initialize NQuest", ex);
             }
         });
+
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (questSyncClient != null) {
                 questSyncClient.shutdown();
             }
-            if (userDatabase != null) {
-                userDatabase.close();
+            if (rankingApi != null) {
+                rankingApi.shutdown();
             }
             if (questStorage != null && questCategories != null) {
                 try {
@@ -89,13 +101,27 @@ public class NQuestMod implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((packetListener, packetSender, server) -> {
             server.execute(() -> {
                 ServerPlayer player = packetListener.getPlayer();
-                try {
-                    questDispatcher.playerProfiles.put(player.getGameProfile().getId(),
-                        userDatabase.loadPlayerProfile(player.getGameProfile().getId()));
-                    questNotifications.onPlayerJoin(questDispatcher, player.getGameProfile().getId());
-                } catch (SQLException ex) {
-                    LOGGER.error("Failed to load player profile for {}", player.getGameProfile().getName(), ex);
+                UUID playerUuid = player.getGameProfile().getId();
+
+                PlayerProfile profile = new PlayerProfile();
+                profile.playerUuid = playerUuid;
+                profile.activeQuests = profileStorage.load(playerUuid);
+
+                questDispatcher.playerProfiles.put(playerUuid, profile);
+
+                if (rankingApi != null && rankingApi.isEnabled()) {
+                    rankingApi.getPlayerProfile(playerUuid).whenComplete((stats, error) -> {
+                        if (error != null) {
+                            LOGGER.warn("Failed to fetch player stats for {}", player.getGameProfile().getName(), error);
+                            return;
+                        }
+                        profile.qpBalance = stats.qpBalance;
+                        profile.totalQuestCompletions = stats.totalQuestCompletions;
+                        profile.lastStatsSyncTime = System.currentTimeMillis();
+                    });
                 }
+
+                questNotifications.onPlayerJoin(questDispatcher, playerUuid);
             });
         });
 
@@ -108,11 +134,7 @@ public class NQuestMod implements ModInitializer {
                 }
                 PlayerProfile profile = questDispatcher.playerProfiles.remove(playerUuid);
                 if (profile != null) {
-                    try {
-                        userDatabase.savePlayerProfile(profile);
-                    } catch (SQLException ex) {
-                        LOGGER.error("Failed to save player profile for {}", player.getGameProfile().getName(), ex);
-                    }
+                    profileStorage.save(playerUuid, profile.activeQuests);
                 }
             });
         });
@@ -125,7 +147,7 @@ public class NQuestMod implements ModInitializer {
             if (server.getTickCount() % 20 == 10 && questSyncClient != null) {
                 questSyncClient.tick(server.getTickCount());
             }
-            if (server.getTickCount() % 20 != 15) return; // Once 1 second
+            if (server.getTickCount() % 20 != 15) return;
             TscStatus.isAnyQuestGoingOn = questDispatcher.updatePlayers(server.getPlayerList()::getPlayer);
             GenerationStatus.nextGeneration();
         });

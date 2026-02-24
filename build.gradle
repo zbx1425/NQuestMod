@@ -41,7 +41,6 @@ dependencies {
     modImplementation "maven.modrinth:minecraft-transit-railway:FABRIC-${rootProject.mtr_version}+${rootProject.minecraft_version}"
 
     modImplementation include("eu.pb4:sgui:${rootProject:sgui_version}")
-    implementation include('org.xerial:sqlite-jdbc:3.50.3.0')
 }
 
 processResources {

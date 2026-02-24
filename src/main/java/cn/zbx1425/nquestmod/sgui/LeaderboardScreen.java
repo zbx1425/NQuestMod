@@ -3,6 +3,7 @@ package cn.zbx1425.nquestmod.sgui;
 import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.ranking.PlayerCompletionsEntry;
 import cn.zbx1425.nquestmod.data.ranking.PlayerQPEntry;
+import cn.zbx1425.nquestmod.data.ranking.RankingApiClient;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.BaseSlotGui;
 import net.minecraft.ChatFormatting;
@@ -13,7 +14,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -59,27 +59,26 @@ public class LeaderboardScreen extends TabbedItemListGui<Object, LeaderboardScre
     @Override
     @SuppressWarnings("unchecked")
     protected CompletableFuture<Pair<List<Object>, Integer>> supplyItems(int offset, int limit) {
-        boolean isMonthly = selectedSecondaryTab == TimeRange.MONTHLY;
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                List result;
-                switch (selectedPrimaryTab) {
-                    case QP:
-                        result = NQuestMod.INSTANCE.userDatabase.getOverallQPLeaderboard(limit, isMonthly);
-                        break;
-                    case COMPLETIONS:
-                        result = NQuestMod.INSTANCE.userDatabase.getQuestCompletionsLeaderboard(limit, isMonthly);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + selectedPrimaryTab);
-                    // SPEEDRUN case will be handled separately
-                }
-                return Pair.of(result, result.size());
-            } catch (SQLException e) {
-                NQuestMod.LOGGER.error("Failed to load leaderboard data", e);
-            }
-            return Pair.of(List.of(), 0);
-        });
+        String period = selectedSecondaryTab == TimeRange.MONTHLY ? "monthly" : "all_time";
+        RankingApiClient api = NQuestMod.INSTANCE.rankingApi;
+        switch (selectedPrimaryTab) {
+            case QP:
+                return api.getQPLeaderboard(period, limit, offset)
+                        .thenApply(page -> Pair.of((List<Object>) (List<?>) page.entries, page.total))
+                        .exceptionally(e -> {
+                            NQuestMod.LOGGER.error("Failed to load QP leaderboard", e);
+                            return Pair.of(List.of(), 0);
+                        });
+            case COMPLETIONS:
+                return api.getCompletionsLeaderboard(period, limit, offset)
+                        .thenApply(page -> Pair.of((List<Object>) (List<?>) page.entries, page.total))
+                        .exceptionally(e -> {
+                            NQuestMod.LOGGER.error("Failed to load completions leaderboard", e);
+                            return Pair.of(List.of(), 0);
+                        });
+            default:
+                return CompletableFuture.completedFuture(Pair.of(List.of(), 0));
+        }
     }
 
     @Override

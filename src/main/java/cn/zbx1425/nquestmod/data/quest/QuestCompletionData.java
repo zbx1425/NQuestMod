@@ -6,7 +6,9 @@ import java.util.UUID;
 public class QuestCompletionData {
 
     public UUID playerUuid;
+    public String playerName;
     public String questId;
+    public String questName;
     public long completionTime;
     public long durationMillis;
     public int questPoints;

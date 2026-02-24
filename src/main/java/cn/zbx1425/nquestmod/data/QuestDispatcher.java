@@ -1,17 +1,16 @@
 package cn.zbx1425.nquestmod.data;
 
+import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
-import cn.zbx1425.nquestmod.data.ranking.QuestUserDatabase;
+import cn.zbx1425.nquestmod.data.ranking.RankingApiClient;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.Step;
-import cn.zbx1425.nquestmod.data.quest.StepState;
 import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 import cn.zbx1425.nquestmod.data.quest.QuestProgress;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
@@ -21,14 +20,14 @@ import java.util.HashSet;
 public class QuestDispatcher {
 
     private final IQuestCallbacks callback;
-    private final QuestUserDatabase databaseManager;
+    private final RankingApiClient rankingApi;
     public Map<String, Quest> quests;
     public final Map<UUID, PlayerProfile> playerProfiles = new HashMap<>();
     private final Set<UUID> debugPlayers = new HashSet<>();
 
-    public QuestDispatcher(IQuestCallbacks callback, QuestUserDatabase databaseManager) {
+    public QuestDispatcher(IQuestCallbacks callback, RankingApiClient rankingApi) {
         this.callback = callback;
-        this.databaseManager = databaseManager;
+        this.rankingApi = rankingApi;
         this.quests = Map.of();
     }
 
@@ -151,7 +150,7 @@ public class QuestDispatcher {
         }
     }
 
-    private void advanceQuestStep(PlayerProfile profile, QuestProgress progress, Quest quest) {
+    private void advanceQuestStep(PlayerProfile profile, QuestProgress progress, Quest quest, ServerPlayer player) {
         long now = System.currentTimeMillis();
         progress.currentStepIndex++;
         callback.onStepCompleted(this, profile.playerUuid, quest, progress);
@@ -161,7 +160,9 @@ public class QuestDispatcher {
 
             QuestCompletionData completionData = new QuestCompletionData();
             completionData.playerUuid = profile.playerUuid;
+            completionData.playerName = player.getGameProfile().getName();
             completionData.questId = quest.id;
+            completionData.questName = quest.name;
             completionData.completionTime = now;
             completionData.durationMillis = now - progress.questStartTime;
             completionData.questPoints = quest.questPoints;
@@ -177,18 +178,24 @@ public class QuestDispatcher {
 
             boolean debug = isDebugMode(profile.playerUuid);
             if (!debug) {
-                profile.totalQuestPoints += quest.questPoints;
+                profile.qpBalance += quest.questPoints;
                 profile.totalQuestCompletions += 1;
             }
 
             callback.onQuestCompleted(this, profile.playerUuid, quest, completionData);
 
-            if (!debug) {
-                try {
-                    databaseManager.addQuestCompletion(profile.playerUuid, quest, completionData);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
+            if (!debug && rankingApi != null && rankingApi.isEnabled()) {
+                rankingApi.submitCompletion(completionData).whenComplete((response, error) -> {
+                    if (error != null) {
+                        NQuestMod.LOGGER.error("Failed to submit completion to backend, writing to WAL", error);
+                        NQuestMod.INSTANCE.pendingCompletions.enqueue(completionData);
+                        return;
+                    }
+                    profile.qpBalance = response.qpBalance;
+                    profile.totalQuestCompletions = response.totalQuestCompletions;
+                    profile.lastStatsSyncTime = System.currentTimeMillis();
+                    NQuestMod.INSTANCE.pendingCompletions.replayIfNeeded(rankingApi);
+                });
             }
         } else {
             progress.resetStepStates();
@@ -232,7 +239,7 @@ public class QuestDispatcher {
         }
 
         if (currentStep.evaluate(player, criteriaCtx)) {
-            advanceQuestStep(profile, progress, progress.questSnapshot);
+            advanceQuestStep(profile, progress, progress.questSnapshot, player);
         }
     }
 }

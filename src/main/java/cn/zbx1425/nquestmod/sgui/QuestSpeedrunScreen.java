@@ -2,8 +2,10 @@ package cn.zbx1425.nquestmod.sgui;
 
 import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.quest.Quest;
+import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.BaseSlotGui;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,13 +13,10 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import net.minecraft.ChatFormatting;
-import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 
 public class QuestSpeedrunScreen extends TabbedItemListGui<QuestCompletionData, LeaderboardScreen.LeaderboardType, Void> {
 
@@ -59,15 +58,14 @@ public class QuestSpeedrunScreen extends TabbedItemListGui<QuestCompletionData, 
 
     @Override
     protected CompletableFuture<Pair<List<QuestCompletionData>, Integer>> supplyItems(int offset, int limit) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                List<QuestCompletionData> entries = NQuestMod.INSTANCE.userDatabase.getQuestTimeLeaderboard(quest.id, limit, isMonthly);
-                return Pair.of(entries, entries.size());
-            } catch (SQLException e) {
-                NQuestMod.LOGGER.error("Failed to load quest time leaderboard", e);
-                return Pair.of(List.of(), 0);
-            }
-        });
+        String period = isMonthly ? "monthly" : "all_time";
+        return NQuestMod.INSTANCE.rankingApi
+                .getSpeedrunLeaderboard(quest.id, period, "personal_best", limit, offset)
+                .thenApply(page -> Pair.of(page.entries, page.total))
+                .exceptionally(e -> {
+                    NQuestMod.LOGGER.error("Failed to load quest time leaderboard", e);
+                    return Pair.of(List.of(), 0);
+                });
     }
 
     @Override

@@ -12,7 +12,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -36,22 +35,22 @@ public class QuestHistoryScreen extends ItemListGui<QuestCompletionData> {
 
     @Override
     protected CompletableFuture<Pair<List<QuestCompletionData>, Integer>> supplyItems(int offset, int limit) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                List<QuestCompletionData> history = NQuestMod.INSTANCE.userDatabase
-                        .getPlayerQuestHistory(player.getGameProfile().getId(), limit, offset);
-                return Pair.of(history, history.size() < limit ? history.size() : 99999); // Assume there's always more for history
-            } catch (SQLException e) {
-                NQuestMod.LOGGER.error("Failed to load player quest history", e);
-                return Pair.of(List.of(), 0);
-            }
-        });
+        return NQuestMod.INSTANCE.rankingApi
+                .getPlayerHistory(player.getGameProfile().getId(), limit, offset)
+                .thenApply(page -> Pair.of(page.entries, page.total))
+                .exceptionally(e -> {
+                    NQuestMod.LOGGER.error("Failed to load player quest history", e);
+                    return Pair.of(List.of(), 0);
+                });
     }
 
     @Override
     protected GuiElementBuilder createElementForItem(QuestCompletionData item, int index) {
-        Quest quest = NQuestMod.INSTANCE.questDispatcher.quests.get(item.questId);
-        String questName = (quest != null) ? quest.name : item.questId;
+        String questName = item.questName;
+        if (questName == null || questName.isEmpty()) {
+            Quest quest = NQuestMod.INSTANCE.questDispatcher.quests.get(item.questId);
+            questName = (quest != null) ? quest.name : item.questId;
+        }
         long seconds = item.durationMillis / 1000;
 
         return new GuiElementBuilder(Items.BOOK)
