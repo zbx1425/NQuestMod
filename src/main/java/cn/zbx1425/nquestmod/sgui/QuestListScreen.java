@@ -31,6 +31,7 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
     public QuestListScreen(ServerPlayer player, BaseSlotGui parent, BiConsumer<Quest, QuestListScreen> callback) {
         super(MenuType.GENERIC_9x4, player, parent,
                 NQuestMod.INSTANCE.questCategories.entrySet().stream()
+                    .filter(c -> !c.getValue().hidden || NQuestMod.INSTANCE.questDispatcher.isDebugMode(player.getGameProfile().getId()))
                     .min(Comparator.comparingInt(c -> c.getValue().order))
                     .map(Pair::of)
                     .orElse(null),

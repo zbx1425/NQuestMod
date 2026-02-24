@@ -32,68 +32,128 @@ public class Commands {
                 GuiStarter.openEntry(ctx.getSource().getPlayerOrException());
                 return 1;
             })
-            .then(literal.apply("start")
+            .then(literal.apply("quest")
                 .requires(source -> source.hasPermission(2))
-                .then(argument.apply("participant", EntityArgument.player())
-                    .then(argument.apply("quest_id", StringArgumentType.string())
+                .then(literal.apply("start")
+                    .requires(source -> source.hasPermission(2))
+                    .then(argument.apply("participant", EntityArgument.player())
+                        .then(argument.apply("quest_id", StringArgumentType.string())
+                            .executes(ctx -> {
+                                startQuest(EntityArgument.getPlayer(ctx, "participant"), StringArgumentType.getString(ctx, "quest_id"));
+                                return 1;
+                            })
+                        )
+                    )
+                )
+                .then(literal.apply("stop")
+                    .then(argument.apply("participant", EntityArgument.player())
+                        .requires(source -> source.hasPermission(2))
                         .executes(ctx -> {
-                            startQuest(EntityArgument.getPlayer(ctx, "participant"), StringArgumentType.getString(ctx, "quest_id"));
+                            stopQuests(EntityArgument.getPlayer(ctx, "participant"));
                             return 1;
                         })
                     )
-                )
-            )
-            .then(literal.apply("stop")
-                .then(argument.apply("participant", EntityArgument.player())
-                    .requires(source -> source.hasPermission(2))
                     .executes(ctx -> {
-                        stopQuests(EntityArgument.getPlayer(ctx, "participant"));
+                        stopQuests(ctx.getSource().getPlayerOrException());
                         return 1;
                     })
                 )
-                .executes(ctx -> {
-                    stopQuests(ctx.getSource().getPlayerOrException());
-                    return 1;
-                })
-            )
-            .then(literal.apply("trigger")
-                .requires(source -> source.hasPermission(2))
-                .then(argument.apply("participant", EntityArgument.player())
+                .then(literal.apply("trigger")
                     .requires(source -> source.hasPermission(2))
-                    .then(argument.apply("trigger_id", StringArgumentType.string())
-                        .executes(ctx -> {
-                            triggerManualCriterion(EntityArgument.getPlayer(ctx, "participant"), StringArgumentType.getString(ctx, "trigger_id"));
-                            return 1;
-                        })
+                    .then(argument.apply("participant", EntityArgument.player())
+                        .requires(source -> source.hasPermission(2))
+                        .then(argument.apply("trigger_id", StringArgumentType.string())
+                            .executes(ctx -> {
+                                triggerManualCriterion(EntityArgument.getPlayer(ctx, "participant"), StringArgumentType.getString(ctx, "trigger_id"));
+                                return 1;
+                            })
+                        )
                     )
                 )
             )
-            .then(literal.apply("quests")
+            .then(literal.apply("config")
                 .requires(source -> source.hasPermission(2))
-                .then(literal.apply("set")
-                    .then(argument.apply("sign", StringArgumentType.word())
-                    .then(argument.apply("json", StringArgumentType.greedyString())
-                        .executes(ctx -> {
-                            validateTimestampSignature(ctx);
-                            Quest quest = setQuestDefinition(StringArgumentType.getString(ctx, "json"));
-                            Component message = Component.literal("Quest definition accepted with ID: ")
-                                .append(Component.literal(quest.id).withStyle(net.minecraft.ChatFormatting.AQUA));
-                            ctx.getSource().sendSuccess(() -> message, false);
-                            warnIfSyncEnabled(ctx.getSource());
-                            return 1;
-                        })
-                    ))
+                .then(literal.apply("quests")
+                    .requires(source -> source.hasPermission(2))
+                    .then(literal.apply("set")
+                        .then(argument.apply("sign", StringArgumentType.word())
+                        .then(argument.apply("json", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                validateTimestampSignature(ctx);
+                                Quest quest = setQuestDefinition(StringArgumentType.getString(ctx, "json"));
+                                Component message = Component.literal("Quest definition accepted with ID: ")
+                                    .append(Component.literal(quest.id).withStyle(net.minecraft.ChatFormatting.AQUA));
+                                ctx.getSource().sendSuccess(() -> message, false);
+                                warnIfSyncEnabled(ctx.getSource());
+                                return 1;
+                            })
+                        ))
+                    )
+                    .then(literal.apply("get")
+                        .requires(source -> source.hasPermission(3))
+                        .then(argument.apply("quest_id", StringArgumentType.string())
+                            .executes(ctx -> {
+                                String questJson = getQuestDefinition(StringArgumentType.getString(ctx, "quest_id"));
+                                Component message = Component.literal("Quest JSON Data: ")
+                                    .append(Component.literal("[Click to copy]").withStyle(style ->
+                                        style.withUnderlined(true)
+                                            .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                                                net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, questJson))
+                                            .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                                                net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                                                Component.literal("Click to copy to clipboard")))
+                                            .withColor(net.minecraft.ChatFormatting.AQUA)
+                                    ));
+                                ctx.getSource().sendSuccess(() -> message, false);
+                                return 1;
+                            })
+                        )
+                    )
+                    .then(literal.apply("remove")
+                        .requires(source -> source.hasPermission(3))
+                        .then(argument.apply("quest_id", StringArgumentType.string())
+                            .executes(ctx -> {
+                                String questId = StringArgumentType.getString(ctx, "quest_id");
+                                removeQuestDefinition(questId);
+                                Component message = Component.literal("Quest definition removed: ")
+                                    .append(Component.literal(questId).withStyle(net.minecraft.ChatFormatting.AQUA));
+                                ctx.getSource().sendSuccess(() -> message, false);
+                                return 1;
+                            })
+                        )
+                    )
                 )
-                .then(literal.apply("get")
-                    .requires(source -> source.hasPermission(3))
-                    .then(argument.apply("quest_id", StringArgumentType.string())
+                .then(literal.apply("categories")
+                    .requires(source -> source.hasPermission(2))
+                    .then(literal.apply("set")
+                        .then(argument.apply("sign", StringArgumentType.word())
+                        .then(argument.apply("json", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                validateTimestampSignature(ctx);
+                                try {
+                                    Map<String, QuestCategory> categories = QuestPersistence.deserializeCategories(StringArgumentType.getString(ctx, "json"));
+                                    NQuestMod.INSTANCE.questCategories.clear();
+                                    NQuestMod.INSTANCE.questCategories.putAll(categories);
+                                    NQuestMod.INSTANCE.questStorage.saveQuestCategories(NQuestMod.INSTANCE.questCategories);
+                                } catch (Exception ex) {
+                                    NQuestMod.LOGGER.error("Failed to parse or save categories", ex);
+                                    throw new SimpleCommandExceptionType(Component.literal("Failed to parse or save categories: " + ex)).create();
+                                }
+                                ctx.getSource().sendSuccess(() -> Component.literal("Quest categories updated."), false);
+                                warnIfSyncEnabled(ctx.getSource());
+                                return 1;
+                            })
+                        ))
+                    )
+                    .then(literal.apply("get")
+                        .requires(source -> source.hasPermission(3))
                         .executes(ctx -> {
-                            String questJson = getQuestDefinition(StringArgumentType.getString(ctx, "quest_id"));
-                            Component message = Component.literal("Quest JSON Data: ")
+                            String categoriesJson = QuestPersistence.serializeCategories(NQuestMod.INSTANCE.questCategories);
+                            Component message = Component.literal("Quest Categories JSON Data: ")
                                 .append(Component.literal("[Click to copy]").withStyle(style ->
                                     style.withUnderlined(true)
                                         .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                                            net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, questJson))
+                                            net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, categoriesJson))
                                         .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
                                             net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
                                             Component.literal("Click to copy to clipboard")))
@@ -104,57 +164,25 @@ public class Commands {
                         })
                     )
                 )
-                .then(literal.apply("remove")
-                    .requires(source -> source.hasPermission(3))
-                    .then(argument.apply("quest_id", StringArgumentType.string())
-                        .executes(ctx -> {
-                            String questId = StringArgumentType.getString(ctx, "quest_id");
-                            removeQuestDefinition(questId);
-                            Component message = Component.literal("Quest definition removed: ")
-                                .append(Component.literal(questId).withStyle(net.minecraft.ChatFormatting.AQUA));
-                            ctx.getSource().sendSuccess(() -> message, false);
-                            return 1;
-                        })
-                    )
-                )
-            )
-            .then(literal.apply("categories")
-                .requires(source -> source.hasPermission(2))
-                .then(literal.apply("set")
-                    .then(argument.apply("sign", StringArgumentType.word())
-                    .then(argument.apply("json", StringArgumentType.greedyString())
-                        .executes(ctx -> {
-                            validateTimestampSignature(ctx);
-                            try {
-                                Map<String, QuestCategory> categories = QuestPersistence.deserializeCategories(StringArgumentType.getString(ctx, "json"));
-                                NQuestMod.INSTANCE.questCategories.clear();
-                                NQuestMod.INSTANCE.questCategories.putAll(categories);
-                                NQuestMod.INSTANCE.questStorage.saveQuestCategories(NQuestMod.INSTANCE.questCategories);
-                            } catch (Exception ex) {
-                                NQuestMod.LOGGER.error("Failed to parse or save categories", ex);
-                                throw new SimpleCommandExceptionType(Component.literal("Failed to parse or save categories: " + ex)).create();
-                            }
-                            ctx.getSource().sendSuccess(() -> Component.literal("Quest categories updated."), false);
-                            warnIfSyncEnabled(ctx.getSource());
-                            return 1;
-                        })
-                    ))
-                )
-                .then(literal.apply("get")
+                .then(literal.apply("sign")
                     .requires(source -> source.hasPermission(3))
                     .executes(ctx -> {
-                        String categoriesJson = QuestPersistence.serializeCategories(NQuestMod.INSTANCE.questCategories);
-                        Component message = Component.literal("Quest Categories JSON Data: ")
-                            .append(Component.literal("[Click to copy]").withStyle(style ->
+                        CommandSourceStack source = ctx.getSource();
+                        if (NQuestMod.INSTANCE.commandSigner == null) {
+                            throw new SimpleCommandExceptionType(Component.literal("Command signing is not set up.")).create();
+                        }
+                        String signedTimestamp = NQuestMod.INSTANCE.commandSigner.signTimestamp();
+                        Component message = Component.literal("Timestamp signature (valid in 5 mins): ")
+                            .append(Component.literal(signedTimestamp).withStyle(style ->
                                 style.withUnderlined(true)
                                     .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                                        net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, categoriesJson))
+                                        net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, signedTimestamp))
                                     .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
                                         net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
                                         Component.literal("Click to copy to clipboard")))
                                     .withColor(net.minecraft.ChatFormatting.AQUA)
                             ));
-                        ctx.getSource().sendSuccess(() -> message, false);
+                        source.sendSuccess(() -> message, false);
                         return 1;
                     })
                 )
@@ -169,28 +197,6 @@ public class Commands {
                 )
                 .executes(ctx -> {
                     toggleDebugMode(ctx.getSource().getPlayerOrException(), ctx.getSource());
-                    return 1;
-                })
-            )
-            .then(literal.apply("sign")
-                .requires(source -> source.hasPermission(3))
-                .executes(ctx -> {
-                    CommandSourceStack source = ctx.getSource();
-                    if (NQuestMod.INSTANCE.commandSigner == null) {
-                        throw new SimpleCommandExceptionType(Component.literal("Command signing is not set up.")).create();
-                    }
-                    String signedTimestamp = NQuestMod.INSTANCE.commandSigner.signTimestamp();
-                    Component message = Component.literal("Timestamp signature (valid in 5 mins): ")
-                        .append(Component.literal(signedTimestamp).withStyle(style ->
-                            style.withUnderlined(true)
-                                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
-                                    net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, signedTimestamp))
-                                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
-                                    net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
-                                    Component.literal("Click to copy to clipboard")))
-                                .withColor(net.minecraft.ChatFormatting.AQUA)
-                        ));
-                    source.sendSuccess(() -> message, false);
                     return 1;
                 })
             )
