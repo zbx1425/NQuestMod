@@ -118,7 +118,7 @@ public class QuestDispatcher {
         if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         Quest quest = quests.get(questId);
         if (quest == null) throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
-        if (!quest.isVisibleTo(playerUuid, isDebugMode(playerUuid), player.hasPermissions(2))) {
+        if (!quest.isVisibleTo(playerUuid, isDebugMode(playerUuid))) {
             throw new QuestException(QuestException.Type.QUEST_NOT_PUBLISHED);
         }
         if (profile.activeQuests.containsKey(questId)) throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);

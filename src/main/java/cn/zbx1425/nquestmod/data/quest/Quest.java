@@ -28,11 +28,11 @@ public class Quest {
         return status != null ? status : QuestStatus.PUBLIC;
     }
 
-    public boolean isVisibleTo(UUID playerUuid, boolean debugMode, boolean hasPermLevel2) {
+    public boolean isVisibleTo(UUID playerUuid, boolean debugMode) {
         return switch (getEffectiveStatus()) {
             case PUBLIC -> true;
-            case STAGING -> debugMode && hasPermLevel2;
-            case PRIVATE -> debugMode && hasPermLevel2
+            case STAGING -> debugMode;
+            case PRIVATE -> debugMode
                     && creators != null && creators.contains(playerUuid.toString());
         };
     }

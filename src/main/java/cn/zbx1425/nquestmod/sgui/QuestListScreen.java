@@ -35,7 +35,7 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
                     .map(Pair::of)
                     .orElse(null),
                 NQuestMod.INSTANCE.questCategories.entrySet().stream()
-                    .filter(c -> !c.getValue().hidden)
+                    .filter(c -> !c.getValue().hidden || NQuestMod.INSTANCE.questDispatcher.isDebugMode(player.getGameProfile().getId()))
                     .sorted(Comparator.comparingInt(c -> c.getValue().order))
                     .map(entry -> Pair.<Pair<String, QuestCategory>, Supplier<GuiElementBuilder>>of(
                         Pair.of(entry),
@@ -65,10 +65,9 @@ public class QuestListScreen extends TabbedItemListGui<Quest, Pair<String, Quest
         }
         UUID playerUuid = player.getGameProfile().getId();
         boolean debugMode = NQuestMod.INSTANCE.questDispatcher.isDebugMode(playerUuid);
-        boolean hasPermLevel2 = player.hasPermissions(2);
         List<Quest> filteredQuests = NQuestMod.INSTANCE.questDispatcher.quests.values().stream()
                 .filter(q -> selectedPrimaryTab.getKey().equals(q.category))
-                .filter(q -> q.isVisibleTo(playerUuid, debugMode, hasPermLevel2))
+                .filter(q -> q.isVisibleTo(playerUuid, debugMode))
                 .sorted(Comparator.<Quest>comparingInt(q -> {
                     QuestCategory cat = NQuestMod.INSTANCE.questCategories.get(q.category);
                     if (cat == null || cat.tiers == null) return Integer.MAX_VALUE;
