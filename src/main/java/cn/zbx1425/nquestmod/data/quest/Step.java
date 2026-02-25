@@ -29,8 +29,8 @@ public class Step {
                 return Optional.of(failureCriteria.getDisplayRepr());
             }
             return Optional.empty();
-        }
-        if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
+        } else if (defaultCriteria != null && defaultCriteria.failureCriteria != null) {
+            // Step-wide failure criteria overrides quest-wide failure criteria
             if (defaultCriteria.failureCriteria.evaluate(player, defaultFailCtx)) {
                 return Optional.of(defaultCriteria.failureCriteria.getDisplayRepr());
             }

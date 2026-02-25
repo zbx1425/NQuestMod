@@ -1,12 +1,11 @@
 package cn.zbx1425.nquestmod.data.criteria.mtr;
 
-import cn.zbx1425.nquestmod.data.criteria.Criterion;
-import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
-import cn.zbx1425.nquestmod.data.criteria.Descriptor;
-import cn.zbx1425.nquestmod.data.criteria.RisingEdgeAndConditionCriterion;
+import cn.zbx1425.nquestmod.data.criteria.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+
+import java.util.List;
 
 public class RideToStationCriterion implements Criterion {
 
@@ -31,7 +30,10 @@ public class RideToStationCriterion implements Criterion {
     @Override
     public Criterion expand() {
         return new Descriptor(
-            new RisingEdgeAndConditionCriterion(new VisitStationCriterion(stationName), new RideLineCriterion("")),
+            new AndCriterion(List.of(
+                new RisingEdgeAndConditionCriterion(new InStationAreaCriterion(stationName), new RideLineCriterion("")),
+                new StationStopCriterion()
+            )),
             getDisplayRepr()
         );
     }

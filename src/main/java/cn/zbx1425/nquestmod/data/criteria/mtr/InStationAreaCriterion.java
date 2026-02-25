@@ -1,24 +1,34 @@
 package cn.zbx1425.nquestmod.data.criteria.mtr;
 
-import cn.zbx1425.nquestmod.data.criteria.*;
+import cn.zbx1425.nquestmod.data.criteria.Criterion;
+import cn.zbx1425.nquestmod.data.criteria.CriterionContext;
 import cn.zbx1425.nquestmod.interop.TscStatus;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
-import java.util.List;
-
-public class VisitStationCriterion implements Criterion {
+public class InStationAreaCriterion implements Criterion {
 
     public String stationName;
 
-    public VisitStationCriterion(String stationName) {
+    public InStationAreaCriterion(String stationName) {
         this.stationName = stationName;
     }
 
     @Override
     public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
-        throw new UnsupportedOperationException("Must be expanded before evaluation");
+        TscStatus.ClientState state = TscStatus.getClientState(player);
+        if (state == null) return false;
+
+        boolean stationFulfilled = false;
+        for (var station : state.stations()) {
+            if (MtrNameUtil.matches(stationName, station)) {
+                stationFulfilled = true;
+                break;
+            }
+        }
+        // Only counts if the train is stopped / not riding a train
+        return stationFulfilled;
     }
 
     @Override
@@ -26,16 +36,5 @@ public class VisitStationCriterion implements Criterion {
         return Component.literal("Visit ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal(MtrNameUtil.getStationDisplayName(stationName))
                 .withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD));
-    }
-
-    @Override
-    public Criterion expand() {
-        return new Descriptor(
-            new AndCriterion(List.of(
-                new InStationAreaCriterion(stationName),
-                new StationStopCriterion()
-            )),
-            getDisplayRepr()
-        );
     }
 }

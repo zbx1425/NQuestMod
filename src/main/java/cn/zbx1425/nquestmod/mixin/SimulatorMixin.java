@@ -55,8 +55,8 @@ public class SimulatorMixin {
                     final VehicleExtraData vehicleExtraData = vehicle.vehicleExtraData;
                     if (client != null) {
                         long routeId = vehicleExtraData.getThisRouteId();
-                        if (routeId == 0) routeId = vehicleExtraData.getNextRouteId();
                         if (routeId == 0) routeId = vehicleExtraData.getPreviousRouteId();
+                        if (routeId == 0) routeId = vehicleExtraData.getNextRouteId();
                         TscStatus.CLIENTS.put(vehicleRidingEntity.uuid, new TscStatus.ClientState(
                                 client,
                                 simulator.routeIdMap.get(routeId),

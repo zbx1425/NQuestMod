@@ -6,6 +6,10 @@ import net.minecraft.server.level.ServerPlayer;
 
 public class RisingEdgeAndConditionCriterion implements Criterion {
 
+    // Latches when triggerCriteria changes from false -> true, AND conditionCriteria must be true at that moment.
+    // Once latched, it will return true until triggerCriteria becomes false again.
+    // If conditionCriteria is false at the moment of rising edge, it will not latch and will return false until the next rising edge.
+
     protected Criterion triggerCriteria;
     protected Criterion conditionCriteria;
 
@@ -16,14 +20,26 @@ public class RisingEdgeAndConditionCriterion implements Criterion {
 
     @Override
     public boolean evaluate(ServerPlayer player, CriterionContext ctx) {
-        if (!triggerCriteria.evaluate(player, ctx.child("t"))) {
-            ctx.setBoolean("wasTriggerFulfilled", false);
-            return false;
-        }
-        if (!ctx.getBoolean("wasTriggerFulfilled", true)) {
-            ctx.setBoolean("wasTriggerFulfilled", true);
-            return conditionCriteria.evaluate(player, ctx.child("c"));
+        boolean currentTrigger = triggerCriteria.evaluate(player, ctx.child("t"));
+
+        boolean wasTriggerActive = ctx.getBoolean("wasTriggerActive", false);
+        boolean isLatched = ctx.getBoolean("isLatched", false);
+
+        if (currentTrigger) {
+            ctx.setBoolean("wasTriggerActive", true);
+            if (!wasTriggerActive) {
+                // Rising edge
+                boolean conditionMet = conditionCriteria.evaluate(player, ctx.child("c"));
+                ctx.setBoolean("isLatched", conditionMet);
+                return conditionMet;
+            } else {
+                // Trigger is holding high
+                return isLatched;
+            }
         } else {
+            // Reset
+            ctx.setBoolean("wasTriggerActive", false);
+            ctx.setBoolean("isLatched", false);
             return false;
         }
     }
