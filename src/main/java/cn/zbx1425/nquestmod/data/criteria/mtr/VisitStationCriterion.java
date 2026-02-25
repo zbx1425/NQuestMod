@@ -27,7 +27,8 @@ public class VisitStationCriterion implements Criterion {
                 break;
             }
         }
-        return stationFulfilled;
+        // Only counts if the train is stopped / not riding a train
+        return stationFulfilled && !state.trainDoorClosed();
     }
 
     @Override

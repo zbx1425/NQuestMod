@@ -1,9 +1,12 @@
 package cn.zbx1425.nquestmod.mixin;
 
+import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.interop.TscStatus;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.Station;
+import org.mtr.core.data.Vehicle;
+import org.mtr.core.data.VehicleExtraData;
 import org.mtr.core.simulation.Simulator;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -52,7 +55,15 @@ public class SimulatorMixin {
                 if (routeId == 0) routeId = vehicleExtraData.getNextRouteId();
                 if (routeId == 0) routeId = vehicleExtraData.getPreviousRouteId();
                 TscStatus.CLIENTS.put(vehicleRidingEntity.uuid, new TscStatus.ClientState(
-                        client, simulator.routeIdMap.get(routeId)));
+                        client,
+                        simulator.routeIdMap.get(routeId),
+                        vehicleExtraData.getDoorMultiplier() == -1,
+                        vehicleExtraData.getSpeedTarget() * 1000
+                ));
+                NQuestMod.LOGGER.info("Door {}, Speed {} km/h",
+                        vehicleExtraData.getDoorMultiplier() == -1 ? "Close" : "Open",
+                        Math.round(vehicleExtraData.getSpeedTarget() * 1000 * 3.6)
+                );
             }
         }));
     }
