@@ -12,7 +12,6 @@ import org.mtr.core.tool.Utilities;
 
 import java.util.Collection;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class TscStatus {
 
@@ -47,15 +46,15 @@ public class TscStatus {
         Collection<NameIdData> stations,
         NameIdData trainLine,
         boolean trainDoorClosed,
-        double trainSpeedTargetMps
+        double trainSpeedMps
     ) {
 
         public ClientState(Collection<NameIdData> stations) {
             this(stations, null, false, -1);
         }
 
-        public ClientState(ClientState baseOn, NameColorDataBase line, boolean trainDoorClosed, double trainSpeedTargetMps) {
-            this(baseOn.stations, line != null ? new NameIdData(line.getName(), line.getId()) : null, trainDoorClosed, trainSpeedTargetMps);
+        public ClientState(ClientState baseOn, NameColorDataBase line, boolean trainDoorClosed, double trainSpeedMps) {
+            this(baseOn.stations, line != null ? new NameIdData(line.getName(), line.getId()) : null, trainDoorClosed, trainSpeedMps);
         }
     }
 }
