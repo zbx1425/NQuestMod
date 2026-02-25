@@ -8,14 +8,12 @@ import cn.zbx1425.nquestmod.data.quest.Step;
 import cn.zbx1425.nquestmod.data.quest.PlayerProfile;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
 import cn.zbx1425.nquestmod.data.quest.QuestProgress;
+import cn.zbx1425.nquestmod.interop.TscStatus;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
-import java.util.List;
 import java.util.function.Function;
-import java.util.Set;
-import java.util.HashSet;
 
 public class QuestDispatcher {
 
@@ -92,6 +90,17 @@ public class QuestDispatcher {
                 ServerPlayer player = playerGetter.apply(profile.playerUuid);
                 if (player == null) continue;
 
+                TscStatus.ClientState state = TscStatus.getClientState(player);
+                if (state != null && state.trainLine() != null) {
+                    progress.ensureInitialized();
+                    List<String> lines = progress.stepLinesRidden
+                            .computeIfAbsent(progress.currentStepIndex, k -> new ArrayList<>());
+                    String lineName = state.trainLine().name();
+                    if (!lines.contains(lineName)) {
+                        lines.add(lineName);
+                    }
+                }
+
                 tryAdvance(profile, progress, player, null);
             }
         }
@@ -130,6 +139,8 @@ public class QuestDispatcher {
         progress.questStartTime = System.currentTimeMillis();
         progress.stepStartTimes = new HashMap<>();
         progress.stepStartTimes.put(0, progress.questStartTime);
+        progress.stepAccumulatedMillis = new HashMap<>();
+        progress.stepLinesRidden = new HashMap<>();
         progress.resetStepStates();
 
         profile.activeQuests.put(questId, progress);
@@ -157,6 +168,7 @@ public class QuestDispatcher {
 
         if (progress.currentStepIndex >= quest.steps.size()) {
             profile.activeQuests.remove(progress.questId);
+            progress.ensureInitialized();
 
             QuestCompletionData completionData = new QuestCompletionData();
             completionData.playerUuid = profile.playerUuid;
@@ -164,16 +176,21 @@ public class QuestDispatcher {
             completionData.questId = quest.id;
             completionData.questName = quest.name;
             completionData.completionTime = now;
-            completionData.durationMillis = now - progress.questStartTime;
             completionData.questPoints = quest.questPoints;
 
-            completionData.stepDurations = new HashMap<>();
-            long lastTimestamp = progress.questStartTime;
+            completionData.stepDetails = new HashMap<>();
+            completionData.durationMillis = 0;
             for (int i = 0; i < quest.steps.size(); i++) {
                 long stepEndTimestamp = progress.stepStartTimes.getOrDefault(i + 1, now);
-                long stepStartTimestamp = progress.stepStartTimes.getOrDefault(i, lastTimestamp);
-                completionData.stepDurations.put(i, stepEndTimestamp - stepStartTimestamp);
-                lastTimestamp = stepEndTimestamp;
+                long duration = progress.getStepDuration(i, stepEndTimestamp);
+
+                Step step = quest.steps.get(i);
+                String description = step.getDisplayRepr().getString();
+                List<String> linesRidden = progress.stepLinesRidden.getOrDefault(i, List.of());
+
+                completionData.stepDetails.put(i, new QuestCompletionData.StepDetail(
+                        duration, description, new ArrayList<>(linesRidden)));
+                completionData.durationMillis += duration;
             }
 
             boolean debug = isDebugMode(profile.playerUuid);

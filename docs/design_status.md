@@ -246,7 +246,7 @@ tryAdvance(... triggerId)
 | 分类定义 | `<world>/nquest/categories.json` | JSON | set 命令时保存；服务器关闭时保存；启动时加载 |
 | 签名密钥 | `<world>/nquest/command_signer.json` | JSON（UUID） | 首次启动自动生成 |
 | 玩家档案 | `<world>/nquest/user.db` (SQLite) | 表 `player_profiles`（json 列含 QuestProgress.questSnapshot + StepState） | 玩家退出时保存；加入时加载 |
-| 完成记录 | 同上 | 表 `quest_completions`（含 stepDurations JSON） | 任务完成时插入 |
+| 完成记录 | 同上 | 表 `quest_completions`（含 stepDetails JSON） | 任务完成时插入 |
 
 所有 Gson 序列化/反序列化统一使用 `NQuestGson.INSTANCE`（注册了 `CriteriaRegistry` 工厂），确保 `QuestProgress.questSnapshot` 中的多态 Criterion 树可正确序列化。
 

@@ -20,7 +20,7 @@ CREATE TABLE quest_completions (
     completion_time BIGINT NOT NULL,
     duration_millis BIGINT NOT NULL,
     quest_points    INTEGER NOT NULL,
-    step_durations  JSONB,
+    step_details    JSONB,
     created_at      BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
 );
 
@@ -82,7 +82,11 @@ Called by the Mod when a player completes a quest (non-debug mode).
   "completionTime": 1708790400000,
   "durationMillis": 342000,
   "questPoints": 50,
-  "stepDurations": { "0": 120000, "1": 98000, "2": 124000 }
+  "stepDetails": {
+    "0": { "durationMillis": 120000, "description": "Ride Tokyo Express", "linesRidden": ["Tokyo Express"] },
+    "1": { "durationMillis": 98000, "description": "Visit Shibuya Station", "linesRidden": ["Tokyo Express", "Yamanote Line"] },
+    "2": { "durationMillis": 124000, "description": "Visit Shinjuku Station", "linesRidden": ["Yamanote Line"] }
+  }
 }
 ```
 
@@ -167,7 +171,11 @@ Parameters and response format identical to QP leaderboard. `value` = number of 
       "completionTime": 1708790400000,
       "completionId": 1234,
       "isWorldRecord": true,
-      "stepDurations": { "0": 60000, "1": 55000, "2": 70000 }
+      "stepDetails": {
+        "0": { "durationMillis": 60000, "description": "Ride Tokyo Express", "linesRidden": ["Tokyo Express"] },
+        "1": { "durationMillis": 55000, "description": "Visit Shibuya Station", "linesRidden": [] },
+        "2": { "durationMillis": 70000, "description": "Visit Shinjuku Station", "linesRidden": ["Yamanote Line"] }
+      }
     }
   ],
   "total": 42,
@@ -227,7 +235,11 @@ Parameters and response format identical to QP leaderboard. `value` = number of 
       "completionTime": 1708790400000,
       "durationMillis": 185000,
       "questPoints": 50,
-      "stepDurations": { "0": 60000, "1": 55000, "2": 70000 },
+      "stepDetails": {
+        "0": { "durationMillis": 60000, "description": "Ride Tokyo Express", "linesRidden": ["Tokyo Express"] },
+        "1": { "durationMillis": 55000, "description": "Visit Shibuya Station", "linesRidden": [] },
+        "2": { "durationMillis": 70000, "description": "Visit Shinjuku Station", "linesRidden": ["Yamanote Line"] }
+      },
       "isPersonalBest": true
     }
   ],
@@ -340,7 +352,7 @@ Best time per quest for this player.
     "completionTime": 1708790400000
   },
   "stepAnalytics": [
-    { "stepIndex": 0, "avgDurationMillis": 100000, "medianDurationMillis": 95000 }
+    { "stepIndex": 0, "description": "Ride Tokyo Express", "avgDurationMillis": 100000, "medianDurationMillis": 95000 }
   ]
 }
 ```

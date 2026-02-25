@@ -119,6 +119,9 @@ public class NQuestMod implements ModInitializer {
                 PlayerProfile profile = new PlayerProfile();
                 profile.playerUuid = playerUuid;
                 profile.activeQuests = profileStorage.load(playerUuid);
+                for (var progress : profile.activeQuests.values()) {
+                    progress.resumeCurrentStep();
+                }
 
                 questDispatcher.playerProfiles.put(playerUuid, profile);
 
@@ -147,6 +150,9 @@ public class NQuestMod implements ModInitializer {
                 }
                 PlayerProfile profile = questDispatcher.playerProfiles.remove(playerUuid);
                 if (profile != null) {
+                    for (var progress : profile.activeQuests.values()) {
+                        progress.pauseCurrentStep();
+                    }
                     profileStorage.save(playerUuid, profile.activeQuests);
                 }
             });

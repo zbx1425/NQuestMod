@@ -58,7 +58,7 @@ public class RankingApiClient {
         body.addProperty("completionTime", data.completionTime);
         body.addProperty("durationMillis", data.durationMillis);
         body.addProperty("questPoints", data.questPoints);
-        body.add("stepDurations", gson.toJsonTree(data.stepDurations));
+        body.add("stepDetails", gson.toJsonTree(data.stepDetails));
 
         return postJson("/completions", body).thenApply(json -> {
             CompletionResponse resp = new CompletionResponse();
@@ -266,10 +266,19 @@ public class RankingApiClient {
         } else {
             data.questPoints = hOrLObj.has("questPoints") ? hOrLObj.get("questPoints").getAsInt() : 0;
         }
-        if (hOrLObj.has("stepDurations") && !hOrLObj.get("stepDurations").isJsonNull()) {
-            data.stepDurations = gson.fromJson(hOrLObj.get("stepDurations"), new TypeToken<Map<Integer, Long>>() {}.getType());
+        if (hOrLObj.has("stepDetails") && !hOrLObj.get("stepDetails").isJsonNull()) {
+            data.stepDetails = gson.fromJson(hOrLObj.get("stepDetails"),
+                    new TypeToken<Map<Integer, QuestCompletionData.StepDetail>>() {}.getType());
+        } else if (hOrLObj.has("stepDurations") && !hOrLObj.get("stepDurations").isJsonNull()) {
+            Map<Integer, Long> oldDurations = gson.fromJson(hOrLObj.get("stepDurations"),
+                    new TypeToken<Map<Integer, Long>>() {}.getType());
+            data.stepDetails = new HashMap<>();
+            for (Map.Entry<Integer, Long> entry : oldDurations.entrySet()) {
+                data.stepDetails.put(entry.getKey(),
+                        new QuestCompletionData.StepDetail(entry.getValue(), null, null));
+            }
         } else {
-            data.stepDurations = new HashMap<>();
+            data.stepDetails = new HashMap<>();
         }
         return data;
     }

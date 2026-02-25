@@ -6,7 +6,9 @@
   "mixins": [
     "ScoreboardCommandMixin",
     "ServerPlayerMixin",
-    "SimulatorMixin"
+    "SidingAccessor",
+    "SimulatorMixin",
+    "VehicleAccessor"
   ],
   "client": [
   ],

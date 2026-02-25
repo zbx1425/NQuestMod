@@ -3,7 +3,6 @@ package cn.zbx1425.nquestmod.sgui;
 import cn.zbx1425.nquestmod.NQuestMod;
 import cn.zbx1425.nquestmod.data.quest.Quest;
 import cn.zbx1425.nquestmod.data.quest.QuestCompletionData;
-import cn.zbx1425.nquestmod.data.quest.Step;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.BaseSlotGui;
 import net.minecraft.ChatFormatting;
@@ -21,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class QuestCompletionDetailScreen extends ItemListGui<Map.Entry<Integer, Long>> {
+public class QuestCompletionDetailScreen extends ItemListGui<Map.Entry<Integer, QuestCompletionData.StepDetail>> {
 
     private final QuestCompletionData completionData;
     private final Quest quest;
@@ -58,32 +57,41 @@ public class QuestCompletionDetailScreen extends ItemListGui<Map.Entry<Integer, 
     }
 
     @Override
-    protected CompletableFuture<Pair<List<Map.Entry<Integer, Long>>, Integer>> supplyItems(int offset, int limit) {
-        if (quest == null) {
+    protected CompletableFuture<Pair<List<Map.Entry<Integer, QuestCompletionData.StepDetail>>, Integer>> supplyItems(int offset, int limit) {
+        if (completionData.stepDetails == null || completionData.stepDetails.isEmpty()) {
             return CompletableFuture.completedFuture(Pair.of(List.of(), 0));
         }
-        List<Map.Entry<Integer, Long>> stepDurations = new ArrayList<>(completionData.stepDurations.entrySet());
-        stepDurations.sort(Map.Entry.comparingByKey());
+        List<Map.Entry<Integer, QuestCompletionData.StepDetail>> entries =
+                new ArrayList<>(completionData.stepDetails.entrySet());
+        entries.sort(Map.Entry.comparingByKey());
 
         return CompletableFuture.completedFuture(Pair.of(
-                stepDurations.stream().skip(offset).limit(limit).toList(),
-                stepDurations.size()
+                entries.stream().skip(offset).limit(limit).toList(),
+                entries.size()
         ));
     }
 
     @Override
-    protected GuiElementBuilder createElementForItem(Map.Entry<Integer, Long> item, int index) {
+    protected GuiElementBuilder createElementForItem(Map.Entry<Integer, QuestCompletionData.StepDetail> item, int index) {
         int stepIndex = item.getKey();
-        long durationMillis = item.getValue();
-        Step step = (stepIndex < quest.steps.size()) ? quest.steps.get(stepIndex) : null;
+        QuestCompletionData.StepDetail detail = item.getValue();
 
-        Component stepName = (step != null) ? step.criteria.getDisplayRepr() : Component.literal("Step " + (stepIndex + 1));
-        String timeStr = String.format("%.2f s", durationMillis / 1000.0);
+        Component stepName = detail.description != null
+                ? Component.literal(detail.description)
+                : Component.literal("Step " + (stepIndex + 1));
+        String timeStr = String.format("%.2f s", detail.durationMillis / 1000.0);
 
-        return new GuiElementBuilder(Items.CLOCK)
+        GuiElementBuilder builder = new GuiElementBuilder(Items.CLOCK)
                 .setName(stepName)
                 .addLoreLine(Component.literal("Duration: " + timeStr).withStyle(ChatFormatting.GOLD))
                 .setCount(stepIndex + 1);
+
+        if (detail.linesRidden != null && !detail.linesRidden.isEmpty()) {
+            builder.addLoreLine(Component.literal("Lines: " + String.join(", ", detail.linesRidden))
+                    .withStyle(ChatFormatting.AQUA));
+        }
+
+        return builder;
     }
 
 
