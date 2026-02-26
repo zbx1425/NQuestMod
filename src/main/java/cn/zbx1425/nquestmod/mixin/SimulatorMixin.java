@@ -63,10 +63,10 @@ public class SimulatorMixin {
                                 vehicleExtraData.getDoorMultiplier() == -1,
                             ((VehicleAccessor)vehicle).getSpeed() * 1000
                         ));
-                        NQuestMod.LOGGER.info("Door {}, Speed {} km/h",
-                                vehicleExtraData.getDoorMultiplier() == -1 ? "Close" : "Open",
-                                ((VehicleAccessor)vehicle).getSpeed() * 1000 * 3.6
-                        );
+                        // NQuestMod.LOGGER.info("Door {}, Speed {} km/h",
+                        //         vehicleExtraData.getDoorMultiplier() == -1 ? "Close" : "Open",
+                        //         ((VehicleAccessor)vehicle).getSpeed() * 1000 * 3.6
+                        // );
                     }
                 })
             )

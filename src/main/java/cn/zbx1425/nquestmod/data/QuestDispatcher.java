@@ -57,7 +57,8 @@ public class QuestDispatcher {
                     QuestProgress progress = profile.activeQuests.remove(deletedId);
                     if (progress != null) {
                         Quest quest = progress.questSnapshot != null
-                                ? progress.questSnapshot : this.quests.get(deletedId);
+                                ? progress.questSnapshot
+                                : this.quests.get(deletedId);
                         if (quest != null) {
                             callback.onQuestAborted(this, profile.playerUuid, quest);
                         }
@@ -82,16 +83,18 @@ public class QuestDispatcher {
 
             for (QuestProgress progress : new ArrayList<>(profile.activeQuests.values())) {
                 if (progress.questSnapshot == null
-                    || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
+                        || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
                     continue;
                 }
                 isAnyQuestGoingOn = true;
 
                 ServerPlayer player = playerGetter.apply(profile.playerUuid);
-                if (player == null) continue;
+                if (player == null)
+                    continue;
 
                 TscStatus.ClientState state = TscStatus.getClientState(player);
-                if (state != null && state.trainLine() != null) {
+                // Only count lines when train is actually moving
+                if (state != null && state.trainLine() != null && state.trainSpeedMps() > 19 / 3.6) {
                     progress.ensureInitialized();
                     List<String> lines = progress.stepLinesRidden
                             .computeIfAbsent(progress.currentStepIndex, k -> new ArrayList<>());
@@ -109,11 +112,12 @@ public class QuestDispatcher {
 
     public void triggerManualCriterion(UUID playerUuid, String triggerId, ServerPlayer player) throws QuestException {
         PlayerProfile profile = playerProfiles.get(playerUuid);
-        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
+        if (profile == null)
+            throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
 
         for (QuestProgress progress : new ArrayList<>(profile.activeQuests.values())) {
             if (progress.questSnapshot == null
-                || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
+                    || progress.currentStepIndex >= progress.questSnapshot.steps.size()) {
                 continue;
             }
             tryAdvance(profile, progress, player, triggerId);
@@ -123,14 +127,18 @@ public class QuestDispatcher {
     public void startQuest(ServerPlayer player, String questId) throws QuestException {
         UUID playerUuid = player.getGameProfile().getId();
         PlayerProfile profile = playerProfiles.get(playerUuid);
-        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
+        if (profile == null)
+            throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
         Quest quest = quests.get(questId);
-        if (quest == null) throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
+        if (quest == null)
+            throw new QuestException(QuestException.Type.QUEST_NOT_FOUND);
         if (!quest.isVisibleTo(playerUuid, isDebugMode(playerUuid))) {
             throw new QuestException(QuestException.Type.QUEST_NOT_PUBLISHED);
         }
-        if (profile.activeQuests.containsKey(questId)) throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);
-        if (!profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_ONLY_ONE_AT_A_TIME);
+        if (profile.activeQuests.containsKey(questId))
+            throw new QuestException(QuestException.Type.QUEST_ALREADY_STARTED);
+        if (!profile.activeQuests.isEmpty())
+            throw new QuestException(QuestException.Type.QUEST_ONLY_ONE_AT_A_TIME);
 
         QuestProgress progress = new QuestProgress();
         progress.questId = questId;
@@ -149,8 +157,10 @@ public class QuestDispatcher {
 
     public void stopQuests(UUID playerUuid) throws QuestException {
         PlayerProfile profile = playerProfiles.get(playerUuid);
-        if (profile == null) throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
-        if (profile.activeQuests.isEmpty()) throw new QuestException(QuestException.Type.QUEST_NOT_STARTED);
+        if (profile == null)
+            throw new QuestException(QuestException.Type.PLAYER_NOT_FOUND);
+        if (profile.activeQuests.isEmpty())
+            throw new QuestException(QuestException.Type.QUEST_NOT_STARTED);
         List<QuestProgress> progresses = new ArrayList<>(profile.activeQuests.values());
         profile.activeQuests.clear();
         for (QuestProgress progress : progresses) {
@@ -227,18 +237,16 @@ public class QuestDispatcher {
             Step originalStep = progress.questSnapshot.steps.get(progress.currentStepIndex);
             progress.expandedCurrentStep = originalStep.expand();
             progress.expandedDefaultCriteria = progress.questSnapshot.defaultCriteria != null
-                ? progress.questSnapshot.defaultCriteria.expand() : null;
+                    ? progress.questSnapshot.defaultCriteria.expand()
+                    : null;
         }
 
         Step currentStep = progress.expandedCurrentStep;
         Step defaultCriteria = progress.expandedDefaultCriteria;
 
-        CriterionContext criteriaCtx =
-            new CriterionContext(progress.criteriaState, "");
-        CriterionContext failureCtx =
-            new CriterionContext(progress.failureCriteriaState, "");
-        CriterionContext defaultFailCtx =
-            new CriterionContext(progress.defaultFailureCriteriaState, "");
+        CriterionContext criteriaCtx = new CriterionContext(progress.criteriaState, "");
+        CriterionContext failureCtx = new CriterionContext(progress.failureCriteriaState, "");
+        CriterionContext defaultFailCtx = new CriterionContext(progress.defaultFailureCriteriaState, "");
 
         if (triggerId != null) {
             currentStep.propagateManualTrigger(triggerId, criteriaCtx, failureCtx);
@@ -249,7 +257,7 @@ public class QuestDispatcher {
 
         if (!isDebugMode(profile.playerUuid)) {
             Optional<Component> failed = currentStep.evaluateFailure(
-                player, failureCtx, defaultCriteria, defaultFailCtx);
+                    player, failureCtx, defaultCriteria, defaultFailCtx);
             if (failed.isPresent()) {
                 profile.activeQuests.remove(progress.questId);
                 callback.onQuestFailed(this, profile.playerUuid, progress.questSnapshot, failed.get());
