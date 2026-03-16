@@ -86,13 +86,15 @@ public class QuestNotifications implements IQuestCallbacks {
         player.sendSystemMessage(Component.literal(quest.name).withStyle(ChatFormatting.YELLOW), false);
         player.sendSystemMessage(Component.literal("  Time taken: ").withStyle(ChatFormatting.WHITE)
                 .append(Component.literal(formatDuration(data.durationMillis)).withStyle(ChatFormatting.AQUA)), false);
+        player.sendSystemMessage(Component.literal("  Quest Points: ").withStyle(ChatFormatting.WHITE)
+                .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
+
         if (debug) {
-            player.sendSystemMessage(Component.literal("  (Debug - not recorded)")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), false);
-        } else {
-            player.sendSystemMessage(Component.literal("  Quest Points: ").withStyle(ChatFormatting.WHITE)
-                    .append(Component.literal("+" + quest.questPoints + " QP").withStyle(ChatFormatting.GREEN)), false);
+            player.sendSystemMessage(Component.literal("  NOTE: Ask a staff to DISQUALIFY this completion " +
+                    "if you don't want it to contribute to the leaderboard.")
+                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), false);
         }
+
         sendSoundEffect(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
     }

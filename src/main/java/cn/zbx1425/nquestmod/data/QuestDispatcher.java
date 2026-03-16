@@ -203,15 +203,12 @@ public class QuestDispatcher {
                 completionData.durationMillis += duration;
             }
 
-            boolean debug = isDebugMode(profile.playerUuid);
-            if (!debug) {
-                profile.qpBalance += quest.questPoints;
-                profile.totalQuestCompletions += 1;
-            }
+            profile.qpBalance += quest.questPoints;
+            profile.totalQuestCompletions += 1;
 
             callback.onQuestCompleted(this, profile.playerUuid, quest, completionData);
 
-            if (!debug && rankingApi != null && rankingApi.isEnabled()) {
+            if (rankingApi != null && rankingApi.isEnabled()) {
                 rankingApi.submitCompletion(completionData).whenComplete((response, error) -> {
                     if (error != null) {
                         NQuestMod.LOGGER.error("Failed to submit completion to backend, writing to WAL", error);

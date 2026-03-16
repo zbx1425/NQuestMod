@@ -13,6 +13,7 @@ public class CriteriaRegistry {
                 .registerSubtype(AndCriterion.class)
                 .registerSubtype(OrCriterion.class)
                 .registerSubtype(NotCriterion.class)
+                .registerSubtype(SequenceCriterion.class)
                 .registerSubtype(LatchingCriterion.class)
                 .registerSubtype(RisingEdgeAndConditionCriterion.class)
 
