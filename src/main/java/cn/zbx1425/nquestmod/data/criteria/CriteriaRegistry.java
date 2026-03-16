@@ -26,6 +26,8 @@ public class CriteriaRegistry {
                 .registerSubtype(RideToStationCriterion.class)
                 .registerSubtype(VisitStationCriterion.class)
                 .registerSubtype(StationStopCriterion.class)
+                .registerSubtype(RideFromStationCriterion.class)
+                .registerSubtype(RideLineFromStationCriterion.class)
                 ;
     }
 }
