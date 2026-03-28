@@ -13,6 +13,6 @@ public class TeleportDetectCriterion implements Criterion {
 
     @Override
     public Component getDisplayRepr() {
-        return Component.literal("You must not warp or teleport during the quest");
+        return Component.literal("Warp or Teleport");
     }
 }

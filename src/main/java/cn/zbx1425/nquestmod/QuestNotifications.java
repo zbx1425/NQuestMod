@@ -2,6 +2,7 @@ package cn.zbx1425.nquestmod;
 
 import cn.zbx1425.nquestmod.data.QuestDispatcher;
 import cn.zbx1425.nquestmod.data.IQuestCallbacks;
+import cn.zbx1425.nquestmod.data.criteria.Criterion;
 import cn.zbx1425.nquestmod.data.quest.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -50,6 +51,16 @@ public class QuestNotifications implements IQuestCallbacks {
             Step firstStep = quest.steps.get(0);
             player.sendSystemMessage(Component.literal("▶ First: ").withStyle(ChatFormatting.AQUA)
                     .append(firstStep.criteria.getDisplayRepr()), false);
+
+            Criterion failureCriteria = firstStep.failureCriteria != null
+                ? firstStep.failureCriteria
+                : (quest.defaultCriteria != null
+                ? quest.defaultCriteria.failureCriteria : null);
+            if (failureCriteria != null) {
+                MutableComponent failureMsg = Component.literal("   Do not: ").withStyle(ChatFormatting.GRAY)
+                    .append(failureCriteria.getDisplayRepr());
+                player.sendSystemMessage(failureMsg, false);
+            }
         }
         sendSoundEffect(player, SoundEvents.AMETHYST_BLOCK_RESONATE, 2.0f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
@@ -71,6 +82,16 @@ public class QuestNotifications implements IQuestCallbacks {
             MutableComponent nextStepMsg = Component.literal("▶ Next: ").withStyle(ChatFormatting.GOLD)
                     .append(nextStep.criteria.getDisplayRepr());
             player.sendSystemMessage(nextStepMsg, false);
+
+            Criterion failureCriteria = nextStep.failureCriteria != null
+                ? nextStep.failureCriteria
+                : (quest.defaultCriteria != null
+                    ? quest.defaultCriteria.failureCriteria : null);
+            if (failureCriteria != null) {
+                MutableComponent failureMsg = Component.literal("   Do not: ").withStyle(ChatFormatting.GRAY)
+                    .append(failureCriteria.getDisplayRepr());
+                player.sendSystemMessage(failureMsg, false);
+            }
         }
         sendSoundEffect(player, SoundEvents.AMETHYST_BLOCK_RESONATE, 2.0f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
@@ -141,7 +162,8 @@ public class QuestNotifications implements IQuestCallbacks {
         player.sendSystemMessage(Component.literal("✘ Quest Failed ✘")
             .withStyle(Style.EMPTY.withColor(ChatFormatting.RED).withBold(true)), false);
         player.sendSystemMessage(Component.literal(quest.name).withStyle(ChatFormatting.YELLOW), false);
-        player.sendSystemMessage(Component.literal("  Reason: ").withStyle(ChatFormatting.WHITE)
+        player.sendSystemMessage(Component.literal("Player did not follow requirement").withStyle(ChatFormatting.WHITE));
+        player.sendSystemMessage(Component.literal("  Do not: ").withStyle(ChatFormatting.WHITE)
             .append(reason.copy().withStyle(ChatFormatting.RED)), false);
         sendSoundEffect(player, SoundEvents.ANVIL_LAND, 0.5f, 1.0f);
         updateBossBarForPlayer(questEngine, player);
